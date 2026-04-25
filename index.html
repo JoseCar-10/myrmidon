@@ -6,6 +6,8 @@
 <title>MYRMIDON // Intel Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #050505;
@@ -953,6 +955,66 @@
     50% { r: 8; opacity: .45; }
   }
 
+
+  /* ── REAL SATELLITE GEO MAP ── */
+  .leaflet-map {
+    height: 250px;
+    min-height: 250px;
+    width: 100%;
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    overflow: hidden;
+    background: #050505;
+    box-shadow: inset 0 0 34px rgba(228,0,43,.10);
+  }
+  .leaflet-container {
+    background: #050505;
+    font-family: var(--mono);
+  }
+  .leaflet-control-attribution {
+    background: rgba(5,5,5,.72) !important;
+    color: rgba(244,246,248,.55) !important;
+    font-family: var(--mono);
+    font-size: 8px;
+  }
+  .leaflet-control-attribution a { color: rgba(244,246,248,.7) !important; }
+  .leaflet-control-zoom a {
+    background: rgba(16,18,20,.92) !important;
+    color: var(--text) !important;
+    border-color: var(--border2) !important;
+  }
+  .myr-popup .leaflet-popup-content-wrapper {
+    background: rgba(10,11,13,.96);
+    color: var(--text);
+    border: 1px solid rgba(228,0,43,.45);
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(228,0,43,.16);
+  }
+  .myr-popup .leaflet-popup-tip { background: rgba(10,11,13,.96); }
+  .geo-map-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 9px;
+  }
+  .geo-map-btn {
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .6px;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 5px 8px;
+    background: rgba(255,255,255,.025);
+    transition: all .15s;
+  }
+  .geo-map-btn:hover {
+    color: var(--accent);
+    border-color: rgba(228,0,43,.45);
+    background: rgba(228,0,43,.08);
+  }
+
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -1169,7 +1231,7 @@
             </div>
 
             <div class="ana-card w6">
-              <div class="ana-hdr">Geo Map / Pivot Locations</div>
+              <div class="ana-hdr">Geo Satellite / ASN Context</div>
               <div class="ana-body mini-map" id="geo-map"></div>
             </div>
 
@@ -2413,16 +2475,16 @@ function renderGeo(ins) {
   if (g.hasCoords) {
     lat = g.lat;
     lon = g.lon;
-    label = `${g.city}, ${g.country}`;
+    label = `${g.city || 'Unknown city'}, ${g.country || 'Unknown country'}`;
   } else {
     const raw = ins.geo?.[0] || '';
     const match = String(raw).match(/\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/);
     if (!match) {
       el.innerHTML = `
-        <div class="geo-card" style="min-height:180px;border-left-color:var(--border2)">
-          <div class="geo-k">Geo Map</div>
+        <div class="geo-card" style="min-height:190px;border-left-color:var(--border2)">
+          <div class="geo-k">Geo Satellite</div>
           <div class="geo-v">NO COORDINATES</div>
-          <div class="geo-sub">The main Geo Intelligence panel above still shows ASN/provider/proxy/TOR context when available.</div>
+          <div class="geo-sub">No coordinates were returned by the enrichment sources. ASN/provider/proxy/TOR context is still available in the Geo / ASN cards.</div>
         </div>`;
       return;
     }
@@ -2431,50 +2493,81 @@ function renderGeo(ins) {
     label = String(raw).replace(/\s*\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/, '');
   }
 
-  // Simple equirectangular projection. No external libraries, no API keys, works on GitHub Pages.
-  const width = 720;
-  const height = 230;
-  const x = ((lon + 180) / 360) * width;
-  const y = ((90 - lat) / 180) * height;
+  const ioc = currentData?.ioc || '';
+  const asn = currentData?.sources?.ipapi?.as || currentData?.sources?.ipinfo?.org || 'Unknown ASN';
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
+  const ipinfoUrl = `https://ipinfo.io/${encodeURIComponent(ioc)}`;
+  const censysUrl = `https://search.censys.io/search?resource=hosts&q=${encodeURIComponent(ioc)}`;
+  const shodanUrl = `https://www.shodan.io/search?query=${encodeURIComponent(ioc)}`;
+  const gnUrl = `https://viz.greynoise.io/ip/${encodeURIComponent(ioc)}`;
 
-  const longitudes = [-120, -60, 0, 60, 120]
-    .map((lng) => {
-      const gx = ((lng + 180) / 360) * width;
-      return `<line class="geo-grid-line" x1="${gx}" y1="0" x2="${gx}" y2="${height}"/>`;
-    }).join('');
-
-  const latitudes = [-60, -30, 0, 30, 60]
-    .map((lt) => {
-      const gy = ((90 - lt) / 180) * height;
-      return `<line class="geo-grid-line" x1="0" y1="${gy}" x2="${width}" y2="${gy}"/>`;
-    }).join('');
-
-  // Abstract land masses: visual context only, not a cartographic source.
-  const land = `
-    <path class="geo-land" d="M75,72 C120,35 180,45 205,84 C230,123 175,150 128,142 C82,134 40,103 75,72Z"/>
-    <path class="geo-land" d="M180,150 C228,135 270,160 280,195 C235,210 190,202 168,176Z"/>
-    <path class="geo-land" d="M320,65 C390,30 455,55 475,100 C428,128 362,126 315,104Z"/>
-    <path class="geo-land" d="M405,128 C455,120 497,150 505,202 C455,218 412,190 392,154Z"/>
-    <path class="geo-land" d="M500,82 C565,40 640,58 670,112 C615,145 545,138 500,114Z"/>
-    <path class="geo-land" d="M575,170 C625,155 672,168 688,205 C635,222 588,210 560,190Z"/>
-  `;
-
+  const mapId = `leaflet-map-${Date.now()}`;
   el.innerHTML = `
-    <div class="geo-map-shell">
-      <svg class="geo-map-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="IOC geolocation map">
-        ${longitudes}${latitudes}${land}
-        <line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="rgba(228,0,43,.20)" stroke-dasharray="4 5"/>
-        <line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="rgba(228,0,43,.20)" stroke-dasharray="4 5"/>
-        <circle class="geo-pin-ring" cx="${x}" cy="${y}" r="6"/>
-        <circle class="geo-pin-core" cx="${x}" cy="${y}" r="2.8"/>
-        <text x="${Math.min(width - 110, Math.max(12, x + 10))}" y="${Math.max(18, y - 10)}" fill="#c9d8e8" font-family="monospace" font-size="10">IOC GEO</text>
-      </svg>
-      <div class="geo-map-label">
-        <span>${safeText(label)}</span>
-        <span class="geo-coords">${lat.toFixed(4)}, ${lon.toFixed(4)}</span>
-      </div>
-    </div>
-  `;
+    <div id="${mapId}" class="leaflet-map"></div>
+    <div class="geo-map-actions">
+      <a class="geo-map-btn" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">OPEN GOOGLE MAPS</a>
+      <a class="geo-map-btn" href="${ipinfoUrl}" target="_blank" rel="noopener noreferrer">OPEN IPINFO</a>
+      <a class="geo-map-btn" href="${censysUrl}" target="_blank" rel="noopener noreferrer">OPEN CENSYS</a>
+      <a class="geo-map-btn" href="${shodanUrl}" target="_blank" rel="noopener noreferrer">OPEN SHODAN</a>
+      <a class="geo-map-btn" href="${gnUrl}" target="_blank" rel="noopener noreferrer">OPEN GREYNOISE</a>
+    </div>`;
+
+  if (typeof L === 'undefined') {
+    document.getElementById(mapId).innerHTML = `
+      <div class="geo-card" style="height:100%;border-left-color:var(--accent)">
+        <div class="geo-k">Satellite Layer</div>
+        <div class="geo-v">MAP LIBRARY NOT LOADED</div>
+        <div class="geo-sub">Leaflet CDN could not be loaded. Use the external map buttons below.</div>
+      </div>`;
+    return;
+  }
+
+  setTimeout(() => {
+    const map = L.map(mapId, {
+      zoomControl: true,
+      attributionControl: true,
+      scrollWheelZoom: false
+    }).setView([lat, lon], 10);
+
+    // Esri World Imagery: satellite-style tiles, no token needed for this frontend demo.
+    const imagery = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 18,
+        attribution: 'Tiles © Esri'
+      }
+    ).addTo(map);
+
+    const labels = L.tileLayer(
+      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 18,
+        attribution: 'Labels © Esri'
+      }
+    ).addTo(map);
+
+    const redIcon = L.divIcon({
+      className: 'myr-geo-marker',
+      html: '<div style="width:18px;height:18px;border:2px solid #e4002b;border-radius:50%;background:rgba(228,0,43,.25);box-shadow:0 0 18px rgba(228,0,43,.9);position:relative"><div style="position:absolute;left:5px;top:5px;width:4px;height:4px;border-radius:50%;background:#fff"></div></div>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+
+    L.marker([lat, lon], { icon: redIcon })
+      .addTo(map)
+      .bindPopup(`<b>IOC GEO</b><br>${safeText(ioc)}<br>${safeText(label)}<br>${safeText(asn)}<br>${lat.toFixed(4)}, ${lon.toFixed(4)}`, { className: 'myr-popup' })
+      .openPopup();
+
+    L.circle([lat, lon], {
+      radius: 35000,
+      color: '#e4002b',
+      weight: 1,
+      fillColor: '#e4002b',
+      fillOpacity: 0.08
+    }).addTo(map);
+
+    setTimeout(() => map.invalidateSize(), 250);
+  }, 50);
 }
 
 function renderInfra(ins) {
