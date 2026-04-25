@@ -872,6 +872,46 @@
     .risk-hdr { grid-template-columns: 1fr; }
   }
 
+
+
+  /* ── ADVANCED GEO MAP ── */
+  .geo-map-shell {
+    position: relative;
+    min-height: 230px;
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.08);
+    background:
+      radial-gradient(circle at 50% 50%, rgba(228,0,43,.10), transparent 42%),
+      linear-gradient(180deg, rgba(255,255,255,.025), rgba(0,0,0,.12));
+  }
+  .geo-map-svg { width: 100%; height: 210px; display: block; }
+  .geo-grid-line { stroke: rgba(122,149,176,.14); stroke-width: .7; }
+  .geo-land { fill: rgba(122,149,176,.08); stroke: rgba(122,149,176,.22); stroke-width: .8; }
+  .geo-pin-ring { fill: rgba(228,0,43,.20); stroke: var(--accent); stroke-width: 1.2; animation: geoPulse 1.8s infinite; }
+  .geo-pin-core { fill: var(--accent); }
+  .geo-map-label {
+    position: absolute;
+    left: 10px;
+    bottom: 9px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+    background: rgba(0,0,0,.45);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 5px;
+    padding: 7px 9px;
+  }
+  .geo-coords { color: var(--accent); }
+  @keyframes geoPulse {
+    0%,100% { r: 5; opacity: .95; }
+    50% { r: 8; opacity: .45; }
+  }
+
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -2068,9 +2108,62 @@ function renderDistribution(ins) {
 
 function renderGeo(ins) {
   const el = document.getElementById('geo-map');
-  el.innerHTML = ins.geo.length
-    ? ins.geo.slice(0, 10).map((g) => `<div class="geo-pt">• ${safeText(g)}</div>`).join('')
-    : '<div class="geo-pt">• No geolocation pivots available</div>';
+  const raw = ins.geo?.[0] || '';
+  const match = String(raw).match(/\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/);
+
+  if (!match) {
+    el.innerHTML = '<div class="geo-pt">• No geolocation coordinates available</div>';
+    return;
+  }
+
+  const lat = Number(match[1]);
+  const lon = Number(match[2]);
+  const label = String(raw).replace(/\s*\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/, '');
+
+  // Simple equirectangular projection. No external libraries, no API keys, works on GitHub Pages.
+  const width = 720;
+  const height = 230;
+  const x = ((lon + 180) / 360) * width;
+  const y = ((90 - lat) / 180) * height;
+
+  const longitudes = [-120, -60, 0, 60, 120]
+    .map((lng) => {
+      const gx = ((lng + 180) / 360) * width;
+      return `<line class="geo-grid-line" x1="${gx}" y1="0" x2="${gx}" y2="${height}"/>`;
+    }).join('');
+
+  const latitudes = [-60, -30, 0, 30, 60]
+    .map((lt) => {
+      const gy = ((90 - lt) / 180) * height;
+      return `<line class="geo-grid-line" x1="0" y1="${gy}" x2="${width}" y2="${gy}"/>`;
+    }).join('');
+
+  // Abstract land masses: visual context only, not a cartographic source.
+  const land = `
+    <path class="geo-land" d="M75,72 C120,35 180,45 205,84 C230,123 175,150 128,142 C82,134 40,103 75,72Z"/>
+    <path class="geo-land" d="M180,150 C228,135 270,160 280,195 C235,210 190,202 168,176Z"/>
+    <path class="geo-land" d="M320,65 C390,30 455,55 475,100 C428,128 362,126 315,104Z"/>
+    <path class="geo-land" d="M405,128 C455,120 497,150 505,202 C455,218 412,190 392,154Z"/>
+    <path class="geo-land" d="M500,82 C565,40 640,58 670,112 C615,145 545,138 500,114Z"/>
+    <path class="geo-land" d="M575,170 C625,155 672,168 688,205 C635,222 588,210 560,190Z"/>
+  `;
+
+  el.innerHTML = `
+    <div class="geo-map-shell">
+      <svg class="geo-map-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="IOC geolocation map">
+        ${longitudes}${latitudes}${land}
+        <line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="rgba(228,0,43,.20)" stroke-dasharray="4 5"/>
+        <line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="rgba(228,0,43,.20)" stroke-dasharray="4 5"/>
+        <circle class="geo-pin-ring" cx="${x}" cy="${y}" r="6"/>
+        <circle class="geo-pin-core" cx="${x}" cy="${y}" r="2.8"/>
+        <text x="${Math.min(width - 110, Math.max(12, x + 10))}" y="${Math.max(18, y - 10)}" fill="#c9d8e8" font-family="monospace" font-size="10">IOC GEO</text>
+      </svg>
+      <div class="geo-map-label">
+        <span>${safeText(label)}</span>
+        <span class="geo-coords">${lat.toFixed(4)}, ${lon.toFixed(4)}</span>
+      </div>
+    </div>
+  `;
 }
 
 function renderInfra(ins) {
