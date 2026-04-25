@@ -863,10 +863,51 @@
   .src-dot.on { color: var(--green); border-color: rgba(6,214,160,.25); background: rgba(6,214,160,.07); }
   .src-dot.off { color: var(--text3); background: rgba(255,255,255,.02); }
 
+
+
+  /* ── GEO INTELLIGENCE STRIP ── */
+  .geo-strip {
+    display: grid;
+    grid-template-columns: 1.1fr .9fr .9fr .9fr;
+    gap: 12px;
+    margin: -6px 0 18px;
+  }
+  .geo-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(17,19,24,.98), rgba(8,10,14,.98));
+    border: 1px solid rgba(255,255,255,.07);
+    border-left: 2px solid var(--accent);
+    border-radius: 7px;
+    padding: 12px 14px;
+    min-height: 82px;
+  }
+  .geo-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 82% 18%, rgba(228,0,43,.10), transparent 38%);
+    pointer-events: none;
+  }
+  .geo-k { font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px; color: var(--text3); text-transform: uppercase; margin-bottom: 7px; position: relative; z-index: 1; }
+  .geo-v { font-family: var(--cond); font-size: 18px; font-weight: 800; letter-spacing: 1px; color: var(--text); text-transform: uppercase; position: relative; z-index: 1; word-break: break-word; }
+  .geo-sub { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-top: 5px; line-height: 1.4; position: relative; z-index: 1; word-break: break-word; }
+  .geo-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; position: relative; z-index: 1; }
+  .geo-badge { font-family: var(--mono); font-size: 8px; border: 1px solid var(--border2); color: var(--text2); padding: 2px 6px; border-radius: 999px; }
+  .geo-badge.bad { color: var(--red); border-color: rgba(228,0,43,.35); background: rgba(228,0,43,.10); }
+  .geo-badge.warn { color: var(--orange); border-color: rgba(255,140,66,.35); background: rgba(255,140,66,.08); }
+  .geo-badge.ok { color: var(--green); border-color: rgba(6,214,160,.30); background: rgba(6,214,160,.06); }
+  .geo-visual-card { padding: 0; border-left-color: rgba(228,0,43,.75); }
+  .geo-mini-svg { width: 100%; height: 82px; display: block; background: linear-gradient(180deg, rgba(228,0,43,.05), rgba(0,0,0,.08)); }
+  .geo-mini-grid { stroke: rgba(255,255,255,.08); stroke-width: .5; }
+  .geo-mini-pin { fill: var(--accent); filter: drop-shadow(0 0 7px rgba(228,0,43,.8)); }
+  .geo-mini-ring { fill: rgba(228,0,43,.18); stroke: var(--accent); stroke-width: 1; }
+
   @media (max-width: 980px) {
     .app { grid-template-columns: 1fr; }
     .sidebar { display: none; }
     .decision-strip { grid-template-columns: 1fr; }
+    .geo-strip { grid-template-columns: 1fr; }
     .ana-card.w4, .ana-card.w6, .ana-card.w8, .ana-card.w12 { grid-column: span 12; }
     .cap-grid { grid-template-columns: repeat(2, 1fr); }
     .risk-hdr { grid-template-columns: 1fr; }
@@ -1049,6 +1090,7 @@
           </div>
           <div class="risk-actions">
             <button class="btn-act" onclick="copyDefanged()">📋 Copy Defanged</button>
+            <button class="btn-act" onclick="copyEvidenceTicket()">🎫 Copy Evidence</button>
             <button class="btn-act" onclick="switchTab('report')">📄 Full Report</button>
             <button class="btn-act" onclick="openAllPivots()">🔗 All Pivots</button>
           </div>
@@ -1056,6 +1098,9 @@
 
         <!-- DECISION STRIP -->
         <div class="decision-strip" id="decision-strip"></div>
+
+        <!-- GEO INTELLIGENCE STRIP -->
+        <div class="geo-strip" id="geo-strip"></div>
 
         <!-- TABS -->
         <div class="tabs">
@@ -1191,13 +1236,15 @@ function detectType(raw) {
     .replace(/hxxps?/gi, (m) => m.replace('hxxp', 'http'))
     .replace(/\[:\]/g, ':')
     .trim();
+  const compact = ioc.replace(/\s+/g, '');
   if (/^(https?):\/\//i.test(ioc)) return 'url';
-  if (/^[a-f0-9]{64}$/i.test(ioc)) return 'hash';
-  if (/^[a-f0-9]{40}$/i.test(ioc)) return 'hash';
-  if (/^[a-f0-9]{32}$/i.test(ioc)) return 'hash';
+  if (/^[a-f0-9]{64}$/i.test(compact)) return 'hash';
+  if (/^[a-f0-9]{40}$/i.test(compact)) return 'hash';
+  if (/^[a-f0-9]{32}$/i.test(compact)) return 'hash';
   if (/^[\w.+\-]+@[\w.\-]+\.[a-z]{2,}$/i.test(ioc)) return 'email';
   if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ioc)) return 'ip';
   if (/^[a-z0-9][a-z0-9\-]*(\.[a-z0-9][a-z0-9\-]*)+$/i.test(ioc)) return 'domain';
+  if (analyzeEncodedString(compact).signals.length || compact.length >= 12) return 'unknown_string';
   return 'unknown';
 }
 
@@ -1225,9 +1272,81 @@ function getRegistrantName(rdap) {
   return fn?.[3] || '—';
 }
 
+function analyzeEncodedString(value) {
+  const raw = String(value || '').trim();
+  const compact = raw.replace(/\s+/g, '');
+  const signals = [];
+  const decoded = [];
+  const flags = [];
+
+  const isJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(compact);
+  const isHex = /^[a-f0-9]{16,}$/i.test(compact) && compact.length % 2 === 0;
+  const isUrlEncoded = /%[0-9a-f]{2}/i.test(raw);
+  const isBase64Like = /^(?=.{16,})(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(compact)
+    || /^(?=.{16,})[A-Za-z0-9_-]+={0,2}$/.test(compact);
+  const looksRandom = /[A-Z]/.test(compact) && /[a-z]/.test(compact) && /\d/.test(compact) && compact.length >= 20;
+  const powershellHints = /powershell|frombase64string|encodedcommand|\-enc\b|iex\b|invoke-expression/i.test(raw);
+  const tdsHints = looksRandom || /[?&][a-z0-9_]{1,6}=[A-Za-z0-9_-]{12,}/i.test(raw) || /^[A-Za-z0-9_-]{20,80}$/.test(compact);
+
+  if (isJwt) signals.push('JWT-like token');
+  if (isHex) signals.push('Hex string');
+  if (isUrlEncoded) signals.push('URL encoded content');
+  if (isBase64Like) signals.push('Base64-like string');
+  if (powershellHints) signals.push('PowerShell/Base64 execution indicator');
+  if (tdsHints) signals.push('Randomized parameter / possible TDS marker');
+
+  try {
+    if (isUrlEncoded) decoded.push({ type: 'URL decoded', value: decodeURIComponent(raw) });
+  } catch (e) {}
+
+  try {
+    if (isBase64Like) {
+      const normalized = compact.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+      const out = atob(padded);
+      const printable = out.replace(/[^\x20-\x7E]/g, '.');
+      decoded.push({ type: 'Base64 decoded preview', value: printable.slice(0, 160) });
+      if (/powershell|cmd\.exe|wscript|cscript|mshta|rundll32|http|https|frombase64string|iex/i.test(printable)) {
+        flags.push('Decoded content contains execution/network indicators');
+      }
+    }
+  } catch (e) {}
+
+  try {
+    if (isHex) {
+      const out = compact.match(/.{1,2}/g).map((b) => String.fromCharCode(parseInt(b, 16))).join('');
+      decoded.push({ type: 'Hex decoded preview', value: out.replace(/[^\x20-\x7E]/g, '.').slice(0, 160) });
+    }
+  } catch (e) {}
+
+  if (signals.length === 0 && compact.length >= 12) signals.push('Unknown high-entropy string');
+  if (looksRandom) flags.push('High-entropy/randomized token pattern');
+  if (powershellHints) flags.push('PowerShell execution keyword detected');
+
+  const score = Math.min(85, 15 + signals.length * 12 + flags.length * 15 + (decoded.length ? 8 : 0));
+  const level = score >= 70 ? 'HIGH' : score >= 45 ? 'MEDIUM' : 'LOW';
+  return { raw, compact, signals, decoded, flags, score, level };
+}
+
+function buildUnknownStringData(input) {
+  const analysis = analyzeEncodedString(input);
+  return {
+    ioc: analysis.compact || input,
+    type: 'unknown_string',
+    timestamp: new Date().toISOString(),
+    local_analysis: analysis,
+    sources: {},
+    risk_score: {
+      score: analysis.score,
+      level: analysis.level,
+      flags: analysis.signals.concat(analysis.flags).slice(0, 8)
+    }
+  };
+}
+
 document.getElementById('ioc-input').addEventListener('input', function () {
   const v = this.value.trim();
-  const labels = { ip: 'IP', domain: 'DOMAIN', url: 'URL', hash: 'HASH', email: 'EMAIL', unknown: '?' };
+  const labels = { ip: 'IP', domain: 'DOMAIN', url: 'URL', hash: 'HASH', email: 'EMAIL', unknown_string: 'STRING', unknown: '?' };
   document.getElementById('type-pill').textContent = v ? labels[detectType(v)] || 'IOC' : 'IOC';
 });
 
@@ -1258,8 +1377,17 @@ async function investigate() {
   }
 
   hideErr();
-  currentIOC = ioc;
+  currentIOC = type === 'unknown_string' ? ioc.replace(/\s+/g, '') : ioc;
   currentType = type;
+
+  if (type === 'unknown_string') {
+    const data = buildUnknownStringData(ioc);
+    currentData = data;
+    addHistory(data.ioc, data.type, data.risk_score);
+    renderResults(data);
+    return;
+  }
+
   showLoading();
   document.getElementById('btn-go').disabled = true;
   document.getElementById('load-ioc').textContent = ioc;
@@ -1287,6 +1415,7 @@ function renderResults(d) {
   document.getElementById('results').classList.add('on');
   renderRiskHdr(d);
   renderDecisionStrip(d);
+  renderGeoStrip(d);
   renderCards(d);
   renderPivots(d);
   renderAnalytics(d);
@@ -1336,6 +1465,118 @@ function analystDecision(d) {
     tone: 'ok',
     rationale: 'No strong malicious consensus from available sources. Keep context-based validation for business relevance.'
   };
+}
+
+
+function getGeoIntel(d) {
+  const s = d?.sources || {};
+  const ipapi = s.ipapi || {};
+  const ipinfo = s.ipinfo || {};
+  const ipqs = s.ipqs || {};
+  const greynoise = s.greynoise || {};
+
+  const lat = Number(ipapi.lat ?? ipinfo.loc?.split(',')?.[0]);
+  const lon = Number(ipapi.lon ?? ipinfo.loc?.split(',')?.[1]);
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
+
+  return {
+    country: ipapi.country || ipinfo.country || 'Unknown',
+    countryCode: ipapi.countryCode || ipinfo.country || '—',
+    city: ipapi.city || ipinfo.city || 'Unknown',
+    region: ipapi.regionName || ipapi.region || ipinfo.region || '—',
+    isp: ipapi.isp || ipinfo.org || 'Unknown provider',
+    asn: ipapi.as || ipinfo.org || '—',
+    timezone: ipapi.timezone || ipinfo.timezone || '—',
+    lat,
+    lon,
+    hasCoords,
+    hosting: !!ipapi.hosting,
+    proxy: !!(ipapi.proxy || ipqs.proxy),
+    vpn: !!ipqs.vpn,
+    tor: !!ipqs.tor,
+    bot: !!ipqs.bot_status,
+    noise: !!greynoise.noise,
+    riot: !!greynoise.riot,
+    gnClass: greynoise.classification || 'unknown'
+  };
+}
+
+function renderGeoMiniMap(g) {
+  const w = 360;
+  const h = 82;
+  if (!g.hasCoords) {
+    return `<div class="geo-v" style="padding:14px">NO GEO COORDS</div><div class="geo-sub" style="padding:0 14px 14px">No latitude/longitude returned by current sources.</div>`;
+  }
+  const x = Math.max(8, Math.min(w - 8, ((g.lon + 180) / 360) * w));
+  const y = Math.max(8, Math.min(h - 8, ((90 - g.lat) / 180) * h));
+  const vlines = [-120, -60, 0, 60, 120].map((lng) => {
+    const gx = ((lng + 180) / 360) * w;
+    return `<line class="geo-mini-grid" x1="${gx}" y1="0" x2="${gx}" y2="${h}"/>`;
+  }).join('');
+  const hlines = [-60, -30, 0, 30, 60].map((lt) => {
+    const gy = ((90 - lt) / 180) * h;
+    return `<line class="geo-mini-grid" x1="0" y1="${gy}" x2="${w}" y2="${gy}"/>`;
+  }).join('');
+  return `
+    <svg class="geo-mini-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Mini geolocation map">
+      ${vlines}${hlines}
+      <path d="M28,30 C52,10 83,13 96,35 C78,51 43,52 25,40Z" fill="rgba(255,255,255,.045)" stroke="rgba(255,255,255,.08)"/>
+      <path d="M145,22 C184,8 222,18 236,39 C206,55 166,52 140,40Z" fill="rgba(255,255,255,.045)" stroke="rgba(255,255,255,.08)"/>
+      <path d="M248,28 C292,8 335,20 348,45 C315,62 270,58 244,43Z" fill="rgba(255,255,255,.045)" stroke="rgba(255,255,255,.08)"/>
+      <line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="rgba(228,0,43,.28)" stroke-dasharray="3 4"/>
+      <line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="rgba(228,0,43,.28)" stroke-dasharray="3 4"/>
+      <circle class="geo-mini-ring" cx="${x}" cy="${y}" r="8"/>
+      <circle class="geo-mini-pin" cx="${x}" cy="${y}" r="3"/>
+    </svg>
+  `;
+}
+
+function renderGeoStrip(d) {
+  const el = document.getElementById('geo-strip');
+  if (!el) return;
+
+  if (d?.type !== 'ip') {
+    el.innerHTML = `
+      <div class="geo-card">
+        <div class="geo-k">Geo Intelligence</div>
+        <div class="geo-v">Not IP-Based</div>
+        <div class="geo-sub">Geolocation is only reliable for IP investigations. Use DNS/ASN pivots for domains and URLs.</div>
+      </div>
+      <div class="geo-card"><div class="geo-k">Current IOC Type</div><div class="geo-v">${safeText((d?.type || 'unknown').toUpperCase())}</div><div class="geo-sub">Visible panel kept for analyst context.</div></div>
+      <div class="geo-card"><div class="geo-k">Next Pivot</div><div class="geo-v">Infrastructure</div><div class="geo-sub">Resolve domain to IP, then run IP enrichment.</div></div>
+      <div class="geo-card geo-visual-card"><div class="geo-v" style="padding:14px">NO IP GEO</div><div class="geo-sub" style="padding:0 14px 14px">Map disabled for non-IP IOC.</div></div>`;
+    return;
+  }
+
+  const g = getGeoIntel(d);
+  const badges = [
+    { label: g.tor ? 'TOR' : 'NO TOR', cls: g.tor ? 'bad' : 'ok' },
+    { label: g.vpn ? 'VPN' : 'NO VPN', cls: g.vpn ? 'warn' : 'ok' },
+    { label: g.proxy ? 'PROXY' : 'NO PROXY', cls: g.proxy ? 'warn' : 'ok' },
+    { label: g.hosting ? 'HOSTING/DC' : 'NON-HOSTING', cls: g.hosting ? 'warn' : 'ok' },
+    { label: g.noise ? 'GREYNOISE NOISE' : 'NO GN NOISE', cls: g.noise ? 'warn' : 'ok' },
+    { label: g.riot ? 'RIOT KNOWN GOOD' : 'NOT RIOT', cls: g.riot ? 'ok' : '' }
+  ].map((b) => `<span class="geo-badge ${b.cls}">${b.label}</span>`).join('');
+
+  el.innerHTML = `
+    <div class="geo-card">
+      <div class="geo-k">Geo Intelligence</div>
+      <div class="geo-v">${safeText(g.city)}, ${safeText(g.countryCode)}</div>
+      <div class="geo-sub">${safeText(g.region)} · ${safeText(g.timezone)}</div>
+      <div class="geo-badges">${badges}</div>
+    </div>
+    <div class="geo-card">
+      <div class="geo-k">Network Owner</div>
+      <div class="geo-v">${safeText(toShort(g.isp, 34))}</div>
+      <div class="geo-sub">${safeText(toShort(g.asn, 56))}</div>
+    </div>
+    <div class="geo-card">
+      <div class="geo-k">Threat Intel Context</div>
+      <div class="geo-v">${safeText(g.gnClass.toUpperCase())}</div>
+      <div class="geo-sub">GreyNoise: ${g.noise ? 'internet scanning observed' : 'no noise observed'} · IPQS: ${g.tor ? 'TOR exit/proxy risk' : 'no TOR signal'}</div>
+    </div>
+    <div class="geo-card geo-visual-card">${renderGeoMiniMap(g)}</div>
+  `;
 }
 
 function renderDecisionStrip(d) {
@@ -1420,6 +1661,40 @@ function cardHtml(c) {
 function buildCards(d) {
   const s = d.sources || {};
   const cards = [];
+
+  if (d.type === 'unknown_string') {
+    const a = d.local_analysis || analyzeEncodedString(d.ioc || '');
+    cards.push({
+      name: 'UNKNOWN / ENCODED STRING ANALYZER',
+      icon: '🧬',
+      warn: a.level !== 'LOW',
+      rows: [
+        { key: 'Assessment', val: a.level || 'LOW', cls: a.level === 'HIGH' ? 'bad' : a.level === 'MEDIUM' ? 'warn' : 'ok' },
+        { key: 'Length', val: String((a.compact || '').length) },
+        { key: 'Signals', val: a.signals?.join(', ') || 'None', cls: a.signals?.length ? 'warn' : 'ok' },
+        { key: 'Flags', val: a.flags?.join(', ') || 'None', cls: a.flags?.length ? 'bad' : '' }
+      ]
+    });
+    if (Array.isArray(a.decoded) && a.decoded.length) {
+      cards.push({
+        name: 'DECODE PREVIEW',
+        icon: '🧾',
+        warn: true,
+        rows: a.decoded.slice(0, 5).map((x) => ({ key: x.type, val: toShort(x.value, 120), cls: /http|powershell|cmd|iex|mshta/i.test(x.value || '') ? 'bad' : 'hi' }))
+      });
+    }
+    cards.push({
+      name: 'ANALYST GUIDANCE',
+      icon: '🎯',
+      rows: [
+        { key: 'Next Step', val: 'Correlate source logs and parent URL/request.' },
+        { key: 'Check', val: 'Look for redirects, clipboard behavior, download prompts, or Win+R / PowerShell lure.' },
+        { key: 'Scope', val: 'Search same token/parameter in proxy, DNS, EDR and email telemetry.' }
+      ]
+    });
+    return cards;
+  }
+
   if (d.type === 'ip') {
     const geo = s.ipapi || {};
     if (!geo.error) {
@@ -1824,6 +2099,14 @@ function getPivotLinks(ioc, type) {
       { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/url/${e}`, purpose: 'Threat pulses / tags' },
       { name: 'Web Archive', icon: '🕰️', url: `https://web.archive.org/web/*/${raw}`, purpose: 'Historical content' },
       { name: 'Pulsedive', icon: '🫀', url: `https://pulsedive.com/indicator/?ioc=${e}`, purpose: 'Aggregated TI pivot' }
+    ],
+    unknown_string: [
+      { name: 'CyberChef', icon: '🧑‍🍳', url: 'https://gchq.github.io/CyberChef/', purpose: 'Manual decode/transform workspace' },
+      { name: 'JWT.io', icon: '🪪', url: 'https://jwt.io/', purpose: 'JWT token decoder' },
+      { name: 'Base64 Decode', icon: '🧬', url: 'https://www.base64decode.org/', purpose: 'Base64 decode validation' },
+      { name: 'URL Decode', icon: '🔓', url: 'https://www.urldecoder.org/', purpose: 'URL-encoded payload decode' },
+      { name: 'Regex101', icon: '🧪', url: 'https://regex101.com/', purpose: 'Pattern validation / extraction' },
+      { name: 'UnpacMe', icon: '📦', url: 'https://www.unpac.me/', purpose: 'Malware unpacking reference' }
     ]
   };
   return maps[type] || [];
@@ -1959,6 +2242,22 @@ function collectInsights(d) {
   const dist = { malicious: 0, suspicious: 0, benign: 0, proxy: 0, tor: 0 };
 
   const addNode = (id, t) => {
+    if (!id) return;
+    if (!nodes.find((n) => n.id === id)) nodes.push({ id, t });
+    edges.push([d.ioc, id]);
+  };
+
+  if (d.type === 'unknown_string') {
+    const a = d.local_analysis || analyzeEncodedString(d.ioc || '');
+    a.signals?.forEach((sig) => tags.push(`STR:${sig}`));
+    a.flags?.forEach((flag) => tags.push(`FLAG:${flag}`));
+    if (a.decoded?.length) addNode('decoded-preview', 'artifact');
+    timeline.push({ dt: new Date(), txt: 'Local encoded/string analysis performed' });
+    dist.suspicious += a.level === 'HIGH' ? 5 : a.level === 'MEDIUM' ? 3 : 1;
+  }
+
+  /* addNode declared above for encoded strings and normal IOC relationships */
+  const addNodeLegacy = (id, t) => {
     if (!id) return;
     if (!nodes.find((n) => n.id === id)) nodes.push({ id, t });
     edges.push([d.ioc, id]);
@@ -2108,17 +2407,29 @@ function renderDistribution(ins) {
 
 function renderGeo(ins) {
   const el = document.getElementById('geo-map');
-  const raw = ins.geo?.[0] || '';
-  const match = String(raw).match(/\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/);
+  const g = getGeoIntel(currentData || {});
+  let lat, lon, label;
 
-  if (!match) {
-    el.innerHTML = '<div class="geo-pt">• No geolocation coordinates available</div>';
-    return;
+  if (g.hasCoords) {
+    lat = g.lat;
+    lon = g.lon;
+    label = `${g.city}, ${g.country}`;
+  } else {
+    const raw = ins.geo?.[0] || '';
+    const match = String(raw).match(/\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/);
+    if (!match) {
+      el.innerHTML = `
+        <div class="geo-card" style="min-height:180px;border-left-color:var(--border2)">
+          <div class="geo-k">Geo Map</div>
+          <div class="geo-v">NO COORDINATES</div>
+          <div class="geo-sub">The main Geo Intelligence panel above still shows ASN/provider/proxy/TOR context when available.</div>
+        </div>`;
+      return;
+    }
+    lat = Number(match[1]);
+    lon = Number(match[2]);
+    label = String(raw).replace(/\s*\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/, '');
   }
-
-  const lat = Number(match[1]);
-  const lon = Number(match[2]);
-  const label = String(raw).replace(/\s*\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)/, '');
 
   // Simple equirectangular projection. No external libraries, no API keys, works on GitHub Pages.
   const width = 720;
@@ -2260,6 +2571,17 @@ Confidence : ${computeExtendedRisk(d).confidence}%
     const iq = s.ipqs_url;
     if (iq && !iq.error) r += `IPQS URL     : Phishing: ${iq.phishing ? 'YES' : 'NO'} | Malware: ${iq.malware ? 'YES' : 'NO'} | Risk: ${iq.risk_score}/100\n`;
   }
+  if (d.type === 'unknown_string') {
+    const a = d.local_analysis || analyzeEncodedString(d.ioc || '');
+    r += `Encoded String Analyzer : ${a.level} | Length: ${(a.compact || '').length}\n`;
+    r += `Detected Signals        : ${a.signals?.join(', ') || 'None'}\n`;
+    r += `Risk Flags              : ${a.flags?.join(', ') || 'None'}\n`;
+    if (a.decoded?.length) {
+      a.decoded.slice(0, 3).forEach((x) => {
+        r += `${String(x.type).padEnd(23)}: ${String(x.value).slice(0, 180)}\n`;
+      });
+    }
+  }
 
   r += `
 ───────────────────────────────────────────────────────────────────
@@ -2335,6 +2657,63 @@ function addHistory(ioc, type, rs) {
 function reInvestigate(ioc) {
   document.getElementById('ioc-input').value = ioc;
   investigate();
+}
+
+
+function copyEvidenceTicket() {
+  if (!currentData) return;
+
+  const d = currentData;
+  const risk = d?.risk_score || {};
+  const level = risk.level || 'UNKNOWN';
+  const score = risk.score ?? 'N/A';
+  const flags = risk.flags || [];
+
+  const abuse = d?.sources?.abuseipdb?.data || {};
+  const vt = d?.sources?.virustotal?.data?.attributes?.last_analysis_stats || {};
+  const gn = d?.sources?.greynoise || {};
+  const ipqs = d?.sources?.ipqs || {};
+  const local = d?.local_analysis || null;
+
+  const abuseScore = abuse.abuseConfidenceScore ?? 'N/A';
+  const abuseReports = abuse.totalReports ?? 'N/A';
+  const vtMalicious = vt.malicious ?? 0;
+  const vtSuspicious = vt.suspicious ?? 0;
+  const gnClass = gn.classification || 'unknown';
+  const gnNoise = gn.noise ? 'YES' : 'NO';
+
+  const evidence = [];
+  if (d.type === 'ip') {
+    evidence.push(`- AbuseIPDB: ${abuseScore}/100, ${abuseReports} reports`);
+    evidence.push(`- VirusTotal: ${vtMalicious} malicious, ${vtSuspicious} suspicious`);
+    evidence.push(`- GreyNoise: ${gnClass} / noise observed: ${gnNoise}`);
+    evidence.push(`- IPQS: TOR=${ipqs.tor ? 'YES' : 'NO'}, VPN=${ipqs.vpn ? 'YES' : 'NO'}, Proxy=${ipqs.proxy ? 'YES' : 'NO'}, Fraud=${ipqs.fraud_score ?? 'N/A'}/100`);
+  } else if (d.type === 'unknown_string') {
+    evidence.push(`- Encoded/String Analyzer: ${(local?.signals || []).join(', ') || 'Unknown high-entropy string'}`);
+    evidence.push(`- Risk Flags: ${(local?.flags || []).join(', ') || 'None'}`);
+    if (local?.decoded?.length) evidence.push(`- Decode Preview: ${local.decoded[0].type} => ${String(local.decoded[0].value).slice(0, 120)}`);
+  } else {
+    evidence.push(`- VirusTotal: ${vtMalicious} malicious, ${vtSuspicious} suspicious`);
+    if (flags.length) evidence.push(`- Flags: ${flags.join(', ')}`);
+  }
+
+  let recommendation = 'Validate related traffic and business context.';
+  if (level === 'CRITICAL' || level === 'HIGH' || abuseScore >= 75 || vtMalicious >= 5 || gnClass === 'malicious') {
+    recommendation = 'Block IOC if not business-related and review related traffic, authentication events, and endpoint telemetry.';
+  } else if (d.type === 'unknown_string') {
+    recommendation = 'Correlate this string in proxy, DNS, email, and EDR logs; inspect parent URL/request and decode safely before taking action.';
+  }
+
+  const text = `IOC: ${d.ioc}
+Type: ${(d.type || '').toUpperCase()}
+Risk: ${level} (${score}/100)
+
+Evidence:
+${evidence.join('\n')}
+
+Recommended action: ${recommendation}`;
+
+  navigator.clipboard.writeText(text);
 }
 
 function copyDefanged() {
