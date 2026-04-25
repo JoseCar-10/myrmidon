@@ -8,22 +8,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #080b0f;
-    --bg2: #0d1117;
-    --bg3: #111820;
-    --panel: #0f1923;
-    --border: #1a2535;
-    --border2: #243044;
-    --accent: #00d4ff;
-    --accent2: #0099cc;
-    --red: #ff3b5c;
-    --orange: #ff8c42;
+    --bg: #050505;
+    --bg2: #0a0b0d;
+    --bg3: #121417;
+    --panel: #101214;
+    --panel2: #15181c;
+    --border: #252932;
+    --border2: #3a404c;
+    --accent: #e4002b;
+    --accent2: #8f001a;
+    --red: #ff2d46;
+    --orange: #ff8a3d;
     --yellow: #ffd166;
-    --green: #06d6a0;
-    --purple: #9d4edd;
-    --text: #c9d8e8;
-    --text2: #7a95b0;
-    --text3: #3d5168;
+    --green: #22c55e;
+    --purple: #a855f7;
+    --text: #f4f6f8;
+    --text2: #a6b0bd;
+    --text3: #5d6673;
     --mono: 'Share Tech Mono', monospace;
     --sans: 'Barlow', sans-serif;
     --cond: 'Barlow Condensed', sans-serif;
@@ -43,7 +44,7 @@
     content: '';
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,212,255,0.012) 2px, rgba(0,212,255,0.012) 4px);
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(228,0,43,0.012) 2px, rgba(228,0,43,0.012) 4px);
     pointer-events: none;
     z-index: 9999;
   }
@@ -53,8 +54,8 @@
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     background-image:
-      linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+      linear-gradient(rgba(228,0,43,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(228,0,43,0.025) 1px, transparent 1px);
     background-size: 40px 40px;
     pointer-events: none;
     z-index: 0;
@@ -86,7 +87,7 @@
     font-weight: 800;
     letter-spacing: 5px;
     color: var(--accent);
-    text-shadow: 0 0 24px rgba(0,212,255,0.45);
+    text-shadow: 0 0 24px rgba(228,0,43,0.45);
   }
 
   .logo-sub {
@@ -176,8 +177,8 @@
     user-select: none;
   }
 
-  .nav-item:hover { background: rgba(0,212,255,.05); color: var(--text); border-color: var(--border); }
-  .nav-item.active { background: rgba(0,212,255,.08); color: var(--accent); border-color: rgba(0,212,255,.2); }
+  .nav-item:hover { background: rgba(228,0,43,.05); color: var(--text); border-color: var(--border); }
+  .nav-item.active { background: rgba(228,0,43,.08); color: var(--accent); border-color: rgba(228,0,43,.2); }
   .nav-icon { font-size: 13px; width: 16px; text-align: center; }
 
   .sb-div { height: 1px; background: var(--border); margin: 6px 14px; }
@@ -245,9 +246,9 @@
     letter-spacing: 1px;
     padding: 3px 8px;
     border-radius: 2px;
-    background: rgba(0,212,255,.1);
+    background: rgba(228,0,43,.1);
     color: var(--accent);
-    border: 1px solid rgba(0,212,255,.2);
+    border: 1px solid rgba(228,0,43,.2);
     pointer-events: none;
     transition: all .2s;
     white-space: nowrap;
@@ -268,8 +269,8 @@
   }
 
   #ioc-input:focus {
-    border-color: rgba(0,212,255,.4);
-    box-shadow: 0 0 0 3px rgba(0,212,255,.04);
+    border-color: rgba(228,0,43,.4);
+    box-shadow: 0 0 0 3px rgba(228,0,43,.04);
   }
 
   #ioc-input::placeholder { color: var(--text3); }
@@ -290,7 +291,7 @@
     text-transform: uppercase;
   }
 
-  .btn-go:hover { background: #33ddff; box-shadow: 0 0 18px rgba(0,212,255,.4); transform: translateY(-1px); }
+  .btn-go:hover { background: #ff3557; box-shadow: 0 0 18px rgba(228,0,43,.4); transform: translateY(-1px); }
   .btn-go:active { transform: translateY(0); }
   .btn-go:disabled { background: var(--border2); color: var(--text3); cursor: not-allowed; transform: none; box-shadow: none; }
 
@@ -316,7 +317,7 @@
     transition: all .15s;
   }
 
-  .chip:hover { background: rgba(0,212,255,.08); border-color: rgba(0,212,255,.3); color: var(--accent); }
+  .chip:hover { background: rgba(228,0,43,.08); border-color: rgba(228,0,43,.3); color: var(--accent); }
 
   .err-bar {
     display: none;
@@ -378,7 +379,7 @@
     cursor: default;
   }
 
-  .cap-card:hover { border-color: rgba(0,212,255,.3); background: rgba(0,212,255,.04); transform: translateY(-2px); }
+  .cap-card:hover { border-color: rgba(228,0,43,.3); background: rgba(228,0,43,.04); transform: translateY(-2px); }
   .cap-card .icon { font-size: 20px; margin-bottom: 6px; }
   .cap-card .lbl { font-family: var(--cond); font-size: 10px; font-weight: 600; letter-spacing: 2px; color: var(--text2); text-transform: uppercase; }
 
@@ -421,7 +422,7 @@
 
   @keyframes lp {
     0%,100% { border-color: var(--border); background: var(--panel); }
-    50% { border-color: rgba(0,212,255,.35); background: rgba(0,212,255,.05); }
+    50% { border-color: rgba(228,0,43,.35); background: rgba(228,0,43,.05); }
   }
 
   .lc-icon { font-size: 18px; }
@@ -491,9 +492,9 @@
     font-size: 10px;
     padding: 3px 9px;
     border-radius: 3px;
-    background: rgba(0,212,255,.1);
+    background: rgba(228,0,43,.1);
     color: var(--accent);
-    border: 1px solid rgba(0,212,255,.2);
+    border: 1px solid rgba(228,0,43,.2);
     text-transform: uppercase;
   }
 
@@ -513,7 +514,7 @@
   }
 
   .flag.w { background: rgba(255,140,66,.12); color: var(--orange); border-color: rgba(255,140,66,.22); }
-  .flag.i { background: rgba(0,212,255,.08); color: var(--accent); border-color: rgba(0,212,255,.18); }
+  .flag.i { background: rgba(228,0,43,.08); color: var(--accent); border-color: rgba(228,0,43,.18); }
 
   .risk-actions { display: flex; flex-direction: column; gap: 7px; }
 
@@ -533,7 +534,7 @@
     white-space: nowrap;
   }
 
-  .btn-act:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.05); }
+  .btn-act:hover { border-color: var(--accent); color: var(--accent); background: rgba(228,0,43,.05); }
 
   /* ── TABS ── */
   .tabs {
@@ -646,15 +647,25 @@
   }
 
   .pivot:hover {
-    background: rgba(0,212,255,.05);
-    border-color: rgba(0,212,255,.3);
+    background: rgba(228,0,43,.05);
+    border-color: rgba(228,0,43,.3);
     color: var(--accent);
     transform: translateY(-2px);
-    box-shadow: 0 4px 14px rgba(0,212,255,.1);
+    box-shadow: 0 4px 14px rgba(228,0,43,.1);
   }
 
   .pivot-icon { font-size: 20px; }
   .pivot-name { font-family: var(--cond); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; text-align: center; }
+  .pivot-url-panel { background: linear-gradient(180deg, rgba(16,18,20,.98), rgba(8,9,10,.98)); border: 1px solid var(--border); border-radius: 7px; padding: 12px; margin-bottom: 14px; }
+  .pivot-url-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+  .pivot-url-title { font-family: var(--cond); font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--text); text-transform: uppercase; }
+  .pivot-url-sub { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-bottom: 9px; }
+  .pivot-url-box { width: 100%; min-height: 110px; background: rgba(0,0,0,.35); border: 1px solid var(--border); border-radius: 5px; color: var(--text2); font-family: var(--mono); font-size: 10px; padding: 10px; resize: vertical; outline: none; }
+  .pivot-card-actions { display: flex; gap: 6px; margin-top: 8px; width: 100%; }
+  .pivot-open, .pivot-copy { flex: 1; text-align: center; padding: 5px 6px; border-radius: 4px; border: 1px solid var(--border2); background: rgba(255,255,255,.025); color: var(--text2); font-family: var(--mono); font-size: 9px; text-decoration: none; cursor: pointer; transition: all .15s; }
+  .pivot-open:hover, .pivot-copy:hover { border-color: rgba(228,0,43,.55); color: var(--accent); background: rgba(228,0,43,.07); }
+  .pivot-url-mini { width: 100%; margin-top: 7px; font-family: var(--mono); font-size: 8px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+
 
   /* ── REPORT ── */
   .report-box { background: var(--panel); border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
@@ -697,7 +708,7 @@
     margin-top: 14px;
   }
 
-  .notes-area:focus { border-color: rgba(0,212,255,.3); }
+  .notes-area:focus { border-color: rgba(228,0,43,.3); }
 
   /* ── RAW ── */
   .raw-json {
@@ -791,7 +802,7 @@
     min-height: 180px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    background: radial-gradient(circle at 30% 35%, rgba(0,212,255,.09), transparent 32%), radial-gradient(circle at 72% 60%, rgba(0,212,255,.07), transparent 28%), rgba(0,0,0,.25);
+    background: radial-gradient(circle at 30% 35%, rgba(228,0,43,.09), transparent 32%), radial-gradient(circle at 72% 60%, rgba(228,0,43,.07), transparent 28%), rgba(0,0,0,.25);
     padding: 10px;
   }
   .geo-pt { font-family: var(--mono); font-size: 10px; color: var(--text2); padding: 3px 0; }
@@ -830,6 +841,37 @@
     color: var(--text2);
   }
 
+
+  /* ── DECISION STRIP / SOURCE HEALTH ── */
+  .decision-strip {
+    display: grid;
+    grid-template-columns: 1.2fr .8fr .8fr;
+    gap: 12px;
+    margin: -6px 0 18px;
+  }
+  .decision-card {
+    background: linear-gradient(180deg, rgba(15,25,35,.96), rgba(10,16,24,.96));
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 12px 14px;
+  }
+  .decision-k { font-family: var(--mono); font-size: 9px; letter-spacing: 1.6px; color: var(--text3); text-transform: uppercase; margin-bottom: 7px; }
+  .decision-v { font-family: var(--cond); font-size: 17px; font-weight: 700; letter-spacing: 1.5px; color: var(--text); text-transform: uppercase; }
+  .decision-sub { font-family: var(--mono); font-size: 10px; color: var(--text2); margin-top: 6px; line-height: 1.45; }
+  .src-health { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+  .src-dot { font-family: var(--mono); font-size: 8px; padding: 2px 6px; border-radius: 999px; border: 1px solid var(--border2); color: var(--text3); }
+  .src-dot.on { color: var(--green); border-color: rgba(6,214,160,.25); background: rgba(6,214,160,.07); }
+  .src-dot.off { color: var(--text3); background: rgba(255,255,255,.02); }
+
+  @media (max-width: 980px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .decision-strip { grid-template-columns: 1fr; }
+    .ana-card.w4, .ana-card.w6, .ana-card.w8, .ana-card.w12 { grid-column: span 12; }
+    .cap-grid { grid-template-columns: repeat(2, 1fr); }
+    .risk-hdr { grid-template-columns: 1fr; }
+  }
+
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -842,9 +884,9 @@
 <header>
   <div class="logo">
     <svg class="logo-mark" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="15,2 28,8.5 28,21.5 15,28 2,21.5 2,8.5" stroke="#00d4ff" stroke-width="1.5" fill="rgba(0,212,255,0.05)"/>
-      <polygon points="15,7 22,11 22,19 15,23 8,19 8,11" stroke="#00d4ff" stroke-width="1" fill="rgba(0,212,255,0.08)" opacity=".7"/>
-      <circle cx="15" cy="15" r="3" fill="#00d4ff"/>
+      <polygon points="15,2 28,8.5 28,21.5 15,28 2,21.5 2,8.5" stroke="#e4002b" stroke-width="1.5" fill="rgba(228,0,43,0.05)"/>
+      <polygon points="15,7 22,11 22,19 15,23 8,19 8,11" stroke="#e4002b" stroke-width="1" fill="rgba(228,0,43,0.08)" opacity=".7"/>
+      <circle cx="15" cy="15" r="3" fill="#e4002b"/>
     </svg>
     <div>
       <div class="logo-text">MYRMIDON</div>
@@ -911,10 +953,10 @@
       <!-- EMPTY -->
       <div class="empty-state" id="empty-state">
         <svg class="empty-hex" viewBox="0 0 110 110" fill="none">
-          <polygon points="55,4 104,30 104,80 55,106 6,80 6,30" stroke="#00d4ff" stroke-width="2" fill="none"/>
-          <polygon points="55,18 90,37 90,73 55,92 20,73 20,37" stroke="#00d4ff" stroke-width="1" fill="none" opacity=".5"/>
-          <circle cx="55" cy="55" r="11" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
-          <circle cx="55" cy="55" r="3" fill="#00d4ff"/>
+          <polygon points="55,4 104,30 104,80 55,106 6,80 6,30" stroke="#e4002b" stroke-width="2" fill="none"/>
+          <polygon points="55,18 90,37 90,73 55,92 20,73 20,37" stroke="#e4002b" stroke-width="1" fill="none" opacity=".5"/>
+          <circle cx="55" cy="55" r="11" stroke="#e4002b" stroke-width="1.5" fill="none"/>
+          <circle cx="55" cy="55" r="3" fill="#e4002b"/>
         </svg>
         <div class="empty-title">AWAITING TARGET</div>
         <div class="empty-sub">Submit an IOC to begin threat investigation</div>
@@ -939,6 +981,9 @@
           <div class="lc"><div class="lc-icon">🦠</div><div class="lc-name">MALWARE</div></div>
           <div class="lc"><div class="lc-icon">🛸</div><div class="lc-name">OTX</div></div>
           <div class="lc"><div class="lc-icon">🔍</div><div class="lc-name">URLSCAN</div></div>
+          <div class="lc"><div class="lc-icon">🔭</div><div class="lc-name">CENSYS</div></div>
+          <div class="lc"><div class="lc-icon">📜</div><div class="lc-name">SSLMATE</div></div>
+          <div class="lc"><div class="lc-icon">🧾</div><div class="lc-name">WHOISXML</div></div>
         </div>
         <div class="loading-txt">Querying threat intelligence sources...</div>
         <div class="loading-ioc" id="load-ioc"></div>
@@ -969,6 +1014,9 @@
           </div>
         </div>
 
+        <!-- DECISION STRIP -->
+        <div class="decision-strip" id="decision-strip"></div>
+
         <!-- TABS -->
         <div class="tabs">
           <div class="tab active" onclick="switchTab('overview')">Overview</div>
@@ -989,6 +1037,7 @@
 
         <div class="tpane" id="tpane-pivots">
           <div class="sec-title">External Investigation Links</div>
+          <div class="pivot-url-panel" id="pivot-url-copy"></div>
           <div class="pivots-grid" id="pivots-grid"></div>
         </div>
 
@@ -1197,6 +1246,7 @@ function renderResults(d) {
   document.getElementById('loading-state').classList.remove('on');
   document.getElementById('results').classList.add('on');
   renderRiskHdr(d);
+  renderDecisionStrip(d);
   renderCards(d);
   renderPivots(d);
   renderAnalytics(d);
@@ -1212,6 +1262,65 @@ const COLORS = {
   LOW: { c: '#06d6a0', bg: 'rgba(6,214,160,.1)', bd: '#06d6a0' },
   CLEAN: { c: '#7a95b0', bg: 'rgba(122,149,176,.08)', bd: '#3d5168' }
 };
+
+function getSourceHealth(d) {
+  const s = d?.sources || {};
+  const keys = ['virustotal', 'abuseipdb', 'ipqs', 'greynoise', 'otx', 'censys', 'sslmate', 'whoisxml'];
+  return keys.map((k) => ({ key: k.toUpperCase(), ok: !!s[k] && !s[k]?.error }));
+}
+
+function analystDecision(d) {
+  const score = d?.risk_score?.score || 0;
+  const flags = (d?.risk_score?.flags || []).join(' ').toUpperCase();
+  const vt = sourceScore('virustotal', d);
+  const abuse = sourceScore('abuseipdb', d);
+  const ipqs = sourceScore('ipqs', d);
+  const censys = sourceScore('censys', d);
+
+  if (score >= 75 || vt >= 75 || abuse >= 80 || flags.includes('TOR')) {
+    return {
+      verdict: 'Escalate / Contain',
+      tone: 'bad',
+      rationale: 'Strong malicious indicators or high-risk anonymity/abuse signals. Validate endpoint telemetry, user activity and blocking scope.'
+    };
+  }
+  if (score >= 45 || vt > 0 || abuse > 25 || ipqs > 40 || censys > 20) {
+    return {
+      verdict: 'Review / Monitor',
+      tone: 'warn',
+      rationale: 'Mixed or moderate-risk indicators. Correlate with SIEM, EDR, proxy/DNS and authentication logs before closing.'
+    };
+  }
+  return {
+    verdict: 'Low Risk / Validate Context',
+    tone: 'ok',
+    rationale: 'No strong malicious consensus from available sources. Keep context-based validation for business relevance.'
+  };
+}
+
+function renderDecisionStrip(d) {
+  const ext = computeExtendedRisk(d);
+  const dec = analystDecision(d);
+  const health = getSourceHealth(d);
+  const healthHtml = health.map((h) => `<span class="src-dot ${h.ok ? 'on' : 'off'}">${h.key}</span>`).join('');
+  const levelColor = dec.tone === 'bad' ? 'var(--red)' : dec.tone === 'warn' ? 'var(--orange)' : 'var(--green)';
+  document.getElementById('decision-strip').innerHTML = `
+    <div class="decision-card">
+      <div class="decision-k">Analyst Decision</div>
+      <div class="decision-v" style="color:${levelColor}">${safeText(dec.verdict)}</div>
+      <div class="decision-sub">${safeText(dec.rationale)}</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-k">Extended Risk Model</div>
+      <div class="decision-v">${ext.score}/100 · ${ext.confidence}% CONF</div>
+      <div class="decision-sub">Weighted model: VT, AbuseIPDB, IPQS, GreyNoise, OTX, Censys, SSLMate and WhoisXML.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-k">Source Health</div>
+      <div class="src-health">${healthHtml}</div>
+      <div class="decision-sub">Keys stay in Cloudflare Worker. GitHub Pages only consumes normalized results.</div>
+    </div>`;
+}
 
 function renderRiskHdr(d) {
   const risk = d?.risk_score || {};
@@ -1612,70 +1721,116 @@ function buildCards(d) {
 }
 
 function getPivotLinks(ioc, type) {
-  const e = encodeURIComponent(ioc);
+  const raw = String(ioc || '');
+  const e = encodeURIComponent(raw);
+  const vtUrlId = safeB64(raw).replace(/=/g, '');
   const maps = {
     ip: [
-      { name: 'VirusTotal', icon: '🔬', url: `https://www.virustotal.com/gui/ip-address/${ioc}` },
-      { name: 'AbuseIPDB', icon: '🛡️', url: `https://www.abuseipdb.com/check/${ioc}` },
-      { name: 'GreyNoise', icon: '👁️', url: `https://viz.greynoise.io/ip/${ioc}` },
-      { name: 'Shodan', icon: '📡', url: `https://www.shodan.io/host/${ioc}` },
-      { name: 'Censys', icon: '🔭', url: `https://search.censys.io/hosts/${ioc}` },
-      { name: 'IPInfo', icon: '🌐', url: `https://ipinfo.io/${ioc}` },
-      { name: 'Talos', icon: '⚡', url: `https://talosintelligence.com/reputation_center/lookup?search=${ioc}` },
-      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/ip/${ioc}` },
-      { name: 'BGPView', icon: '🗺️', url: `https://bgpview.io/ip/${ioc}` },
-      { name: 'IPVoid', icon: '🔎', url: `https://www.ipvoid.com/ip-blacklist-check/?ip=${ioc}` },
-      { name: 'Whois', icon: '📋', url: `https://who.is/whois-ip/ip-address/${ioc}` },
-      { name: 'MXToolbox', icon: '📬', url: `https://mxtoolbox.com/SuperTool.aspx?action=ptr:${ioc}` }
+      { name: 'VirusTotal', icon: '🔬', url: `https://www.virustotal.com/gui/ip-address/${e}`, purpose: 'Reputation / detections' },
+      { name: 'AbuseIPDB', icon: '🛡️', url: `https://www.abuseipdb.com/check/${e}`, purpose: 'Abuse reports' },
+      { name: 'GreyNoise', icon: '👁️', url: `https://viz.greynoise.io/ip/${e}`, purpose: 'Scanner / noise context' },
+      { name: 'Shodan', icon: '📡', url: `https://www.shodan.io/host/${e}`, purpose: 'Exposed services' },
+      { name: 'Censys', icon: '🔭', url: `https://search.censys.io/hosts/${e}`, purpose: 'Service and certificate exposure' },
+      { name: 'IPInfo', icon: '🌐', url: `https://ipinfo.io/${e}`, purpose: 'ASN / geo / org' },
+      { name: 'Talos', icon: '⚡', url: `https://talosintelligence.com/reputation_center/lookup?search=${e}`, purpose: 'Cisco reputation' },
+      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/ip/${e}`, purpose: 'Threat pulses / tags' },
+      { name: 'BGPView', icon: '🗺️', url: `https://bgpview.io/ip/${e}`, purpose: 'ASN route context' },
+      { name: 'IPVoid', icon: '🔎', url: `https://www.ipvoid.com/ip-blacklist-check/${e}/`, purpose: 'Blacklist aggregation' },
+      { name: 'Whois', icon: '📋', url: `https://who.is/whois-ip/ip-address/${e}`, purpose: 'IP WHOIS' },
+      { name: 'MXToolbox PTR', icon: '📬', url: `https://mxtoolbox.com/SuperTool.aspx?action=ptr:${e}`, purpose: 'PTR / DNS checks' },
+      { name: 'CriminalIP', icon: '🧩', url: `https://www.criminalip.io/asset/search?query=${e}`, purpose: 'Exposure / reputation pivot' },
+      { name: 'Pulsedive', icon: '🫀', url: `https://pulsedive.com/indicator/?ioc=${e}`, purpose: 'Aggregated TI pivot' }
     ],
     domain: [
-      { name: 'VirusTotal', icon: '🔬', url: `https://www.virustotal.com/gui/domain/${ioc}` },
-      { name: 'URLScan', icon: '🔍', url: `https://urlscan.io/search/#domain:${ioc}` },
-      { name: 'SecurityTrails', icon: '🕵️', url: `https://securitytrails.com/domain/${ioc}/dns` },
-      { name: 'crt.sh', icon: '🔐', url: `https://crt.sh/?q=${ioc}` },
-      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/domain/${ioc}` },
-      { name: 'Shodan', icon: '📡', url: `https://www.shodan.io/search?query=${ioc}` },
-      { name: 'MXToolbox', icon: '📬', url: `https://mxtoolbox.com/SuperTool.aspx?action=mx:${ioc}` },
-      { name: 'Talos', icon: '⚡', url: `https://talosintelligence.com/reputation_center/lookup?search=${ioc}` },
-      { name: 'DomainTools', icon: '🌐', url: `https://whois.domaintools.com/${ioc}` },
-      { name: 'DNSDumpster', icon: '🗂️', url: 'https://dnsdumpster.com/' },
-      { name: 'Censys', icon: '🔭', url: `https://search.censys.io/search?resource=hosts&q=${ioc}` },
-      { name: 'Wayback', icon: '🕰️', url: `https://web.archive.org/web/*/${ioc}` }
+      { name: 'VirusTotal', icon: '🔬', url: `https://www.virustotal.com/gui/domain/${e}`, purpose: 'Domain reputation' },
+      { name: 'URLScan', icon: '🔍', url: `https://urlscan.io/search/#domain:${e}`, purpose: 'URL scan history' },
+      { name: 'SecurityTrails', icon: '🕵️', url: `https://securitytrails.com/domain/${e}/dns`, purpose: 'DNS / subdomain pivot' },
+      { name: 'crt.sh', icon: '🔐', url: `https://crt.sh/?q=${e}`, purpose: 'Certificate transparency' },
+      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/domain/${e}`, purpose: 'Threat pulses / tags' },
+      { name: 'Shodan', icon: '📡', url: `https://www.shodan.io/search?query=${e}`, purpose: 'Internet exposure' },
+      { name: 'Censys', icon: '🔭', url: `https://search.censys.io/search?resource=hosts&q=${e}`, purpose: 'Service/cert search' },
+      { name: 'MXToolbox MX', icon: '📬', url: `https://mxtoolbox.com/SuperTool.aspx?action=mx:${e}`, purpose: 'Mail/DNS checks' },
+      { name: 'Talos', icon: '⚡', url: `https://talosintelligence.com/reputation_center/lookup?search=${e}`, purpose: 'Cisco reputation' },
+      { name: 'DomainTools', icon: '🌐', url: `https://whois.domaintools.com/${e}`, purpose: 'WHOIS pivot' },
+      { name: 'DNSDumpster', icon: '🗂️', url: 'https://dnsdumpster.com/', purpose: 'Manual subdomain recon' },
+      { name: 'Wayback', icon: '🕰️', url: `https://web.archive.org/web/*/${e}`, purpose: 'Historical content' },
+      { name: 'URLVoid', icon: '🧪', url: `https://www.urlvoid.com/scan/${e}/`, purpose: 'Blacklist aggregation' },
+      { name: 'Pulsedive', icon: '🫀', url: `https://pulsedive.com/indicator/?ioc=${e}`, purpose: 'Aggregated TI pivot' }
     ],
     hash: [
-      { name: 'VirusTotal', icon: '🔬', url: `https://www.virustotal.com/gui/file/${ioc}` },
-      { name: 'MalwareBazaar', icon: '🦠', url: `https://bazaar.abuse.ch/sample/${ioc}` },
-      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/file/${ioc}` },
-      { name: 'Hybrid Analysis', icon: '🧬', url: `https://www.hybrid-analysis.com/search?query=${ioc}` },
-      { name: 'Any.run', icon: '▶️', url: 'https://app.any.run/' },
-      { name: 'Intezer', icon: '🔭', url: 'https://analyze.intezer.com/' },
-      { name: 'PolySwarm', icon: '🐝', url: `https://polyswarm.network/scan/results/file/${ioc}` },
-      { name: 'Triage', icon: '⚗️', url: 'https://tria.ge/' }
+      { name: 'VirusTotal', icon: '🔬', url: `https://www.virustotal.com/gui/file/${e}`, purpose: 'Hash reputation' },
+      { name: 'MalwareBazaar', icon: '🦠', url: `https://bazaar.abuse.ch/sample/${e}`, purpose: 'Malware sample intel' },
+      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/file/${e}`, purpose: 'Threat pulses / tags' },
+      { name: 'Hybrid Analysis', icon: '🧬', url: `https://www.hybrid-analysis.com/search?query=${e}`, purpose: 'Sandbox reports' },
+      { name: 'Any.run', icon: '▶️', url: `https://app.any.run/submissions/#search/${e}`, purpose: 'Interactive sandbox pivot' },
+      { name: 'Intezer', icon: '🔭', url: 'https://analyze.intezer.com/', purpose: 'Code reuse analysis' },
+      { name: 'PolySwarm', icon: '🐝', url: `https://polyswarm.network/scan/results/file/${e}`, purpose: 'Multi-engine malware intel' },
+      { name: 'Triage', icon: '⚗️', url: 'https://tria.ge/', purpose: 'Sandbox analysis' },
+      { name: 'Pulsedive', icon: '🫀', url: `https://pulsedive.com/indicator/?ioc=${e}`, purpose: 'Aggregated TI pivot' }
     ],
     email: [
-      { name: 'HIBP', icon: '🔑', url: `https://haveibeenpwned.com/account/${e}` },
-      { name: 'Hunter.io', icon: '🎯', url: `https://hunter.io/email-verifier/${ioc}` },
-      { name: 'MXToolbox', icon: '📬', url: 'https://mxtoolbox.com/EmailHeaders.aspx' },
-      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/email/${ioc}` },
-      { name: 'Dehashed', icon: '🔓', url: `https://www.dehashed.com/search?query=${e}` }
+      { name: 'HIBP', icon: '🔑', url: `https://haveibeenpwned.com/account/${e}`, purpose: 'Breach exposure' },
+      { name: 'Hunter.io', icon: '🎯', url: `https://hunter.io/email-verifier/${e}`, purpose: 'Email verification' },
+      { name: 'EmailRep', icon: '📧', url: `https://emailrep.io/${e}`, purpose: 'Email reputation' },
+      { name: 'MXToolbox', icon: '📬', url: 'https://mxtoolbox.com/EmailHeaders.aspx', purpose: 'Header analysis' },
+      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/email/${e}`, purpose: 'Threat pulses / tags' },
+      { name: 'Dehashed', icon: '🔓', url: `https://www.dehashed.com/search?query=${e}`, purpose: 'Credential exposure pivot' }
     ],
     url: [
-      { name: 'VirusTotal', icon: '🔬', url: `https://www.virustotal.com/gui/url/${btoa(ioc).replace(/=/g, '')}` },
-      { name: 'URLScan', icon: '🔍', url: `https://urlscan.io/search/#page.url:${e}` },
-      { name: 'PhishTank', icon: '🎣', url: 'https://www.phishtank.com/' },
-      { name: 'Google Safe', icon: '🛡️', url: `https://transparencyreport.google.com/safe-browsing/search?url=${e}` },
-      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/url/${e}` },
-      { name: 'Web Archive', icon: '🕰️', url: `https://web.archive.org/web/*/${ioc}` }
+      { name: 'VirusTotal', icon: '🔬', url: `https://www.virustotal.com/gui/url/${vtUrlId}`, purpose: 'URL reputation' },
+      { name: 'URLScan', icon: '🔍', url: `https://urlscan.io/search/#page.url:${e}`, purpose: 'Scan history' },
+      { name: 'PhishTank', icon: '🎣', url: 'https://www.phishtank.com/', purpose: 'Phishing reports' },
+      { name: 'Google Safe', icon: '🛡️', url: `https://transparencyreport.google.com/safe-browsing/search?url=${e}`, purpose: 'Google Safe Browsing' },
+      { name: 'OTX', icon: '🛸', url: `https://otx.alienvault.com/indicator/url/${e}`, purpose: 'Threat pulses / tags' },
+      { name: 'Web Archive', icon: '🕰️', url: `https://web.archive.org/web/*/${raw}`, purpose: 'Historical content' },
+      { name: 'Pulsedive', icon: '🫀', url: `https://pulsedive.com/indicator/?ioc=${e}`, purpose: 'Aggregated TI pivot' }
     ]
   };
   return maps[type] || [];
 }
 
+function safeB64(v) {
+  try { return btoa(v); } catch (e) { return btoa(unescape(encodeURIComponent(v))); }
+}
+
+function escapeAttr(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function renderPivots(d) {
   const links = getPivotLinks(d.ioc, d.type);
+  const allText = links.map((p) => `${p.name.padEnd(18)} | ${p.purpose || 'Pivot'} | ${p.url}`).join('\n');
+
+  document.getElementById('pivot-url-copy').innerHTML = `
+    <div class="pivot-url-head">
+      <div class="pivot-url-title">Copyable Investigation Sources</div>
+      <button class="btn-copy" onclick="copyAllPivotUrls()">Copy All URLs</button>
+    </div>
+    <div class="pivot-url-sub">Use this block in the analysis/client notes to show exactly where the IOC was pivoted. No API keys are exposed here.</div>
+    <textarea class="pivot-url-box" id="pivot-url-box" readonly>${safeText(allText)}</textarea>
+  `;
+
   document.getElementById('pivots-grid').innerHTML = links
-    .map((p) => `<a class="pivot" href="${p.url}" target="_blank" rel="noopener noreferrer"><div class="pivot-icon">${p.icon}</div><div class="pivot-name">${p.name}</div></a>`)
+    .map((p) => `
+      <div class="pivot">
+        <div class="pivot-icon">${p.icon}</div>
+        <div class="pivot-name">${p.name}</div>
+        <div class="pivot-url-mini" title="${escapeAttr(p.url)}">${safeText(p.purpose || 'External pivot')}</div>
+        <div class="pivot-card-actions">
+          <a class="pivot-open" href="${escapeAttr(p.url)}" target="_blank" rel="noopener noreferrer">OPEN</a>
+          <button class="pivot-copy" data-url="${escapeAttr(p.url)}" onclick="copyPivotUrl(this.dataset.url)">COPY URL</button>
+        </div>
+      </div>`)
     .join('');
+}
+
+function copyPivotUrl(url) {
+  navigator.clipboard.writeText(url || '');
+}
+
+function copyAllPivotUrls() {
+  const el = document.getElementById('pivot-url-box');
+  if (el) navigator.clipboard.writeText(el.value);
 }
 
 function openAllPivots() {
@@ -1857,9 +2012,9 @@ function renderRelationshipGraph(ins) {
     const a = (Math.PI * 2 * i) / Math.max(outer.length, 1);
     return { n, x: cx + Math.cos(a) * 110, y: cy + Math.sin(a) * 110 };
   });
-  const circles = points.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="12" fill="rgba(0,212,255,.13)" stroke="#00d4ff"/><text x="${p.x}" y="${p.y + 24}" text-anchor="middle" fill="#7a95b0" font-family="monospace" font-size="8">${safeText(p.n.t)}</text>`).join('');
+  const circles = points.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="12" fill="rgba(228,0,43,.13)" stroke="#e4002b"/><text x="${p.x}" y="${p.y + 24}" text-anchor="middle" fill="#7a95b0" font-family="monospace" font-size="8">${safeText(p.n.t)}</text>`).join('');
   const labels = points.map((p) => `<text x="${p.x}" y="${p.y + 4}" text-anchor="middle" fill="#c9d8e8" font-family="monospace" font-size="8">${safeText(String(p.n.id).substring(0, 14))}</text>`).join('');
-  const lines = points.map((p) => `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="rgba(0,212,255,.25)"/>`).join('');
+  const lines = points.map((p) => `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="rgba(228,0,43,.25)"/>`).join('');
   wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="280" role="img" aria-label="Relationship graph">${lines}<circle cx="${cx}" cy="${cy}" r="16" fill="rgba(255,209,102,.2)" stroke="#ffd166"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#ffd166" font-family="monospace" font-size="9">IOC</text>${circles}${labels}<text x="${cx}" y="${h - 14}" text-anchor="middle" fill="#3d5168" font-family="monospace" font-size="9">${safeText(core?.id || '')}</text></svg>`;
 }
 
@@ -1877,7 +2032,7 @@ function renderHeatmap(d) {
   el.innerHTML = srcs.map((k) => {
     const v = sourceScore(k, d);
     const a = Math.min(0.35, (v / 100) * 0.35);
-    return `<div class="hcell" style="background:rgba(0,212,255,${a.toFixed(3)})"><div class="hsrc">${k.toUpperCase()}</div><div class="hval">${v}</div></div>`;
+    return `<div class="hcell" style="background:rgba(228,0,43,${a.toFixed(3)})"><div class="hsrc">${k.toUpperCase()}</div><div class="hval">${v}</div></div>`;
   }).join('');
 }
 
@@ -1968,6 +2123,8 @@ Defanged   : ${defang(d.ioc || '')}
 Risk Score : ${score}/100
 Risk Level : ${level}
 Flags      : ${flags.join(', ') || 'None'}
+Decision   : ${analystDecision(d).verdict}
+Confidence : ${computeExtendedRisk(d).confidence}%
 
 ───────────────────────────────────────────────────────────────────
 [2] EVIDENCE GATHERED
@@ -2044,7 +2201,7 @@ ${flags.length ? flags.map((f) => `  - ${f}`).join('\n') : '  - No threat flags 
 ───────────────────────────────────────────────────────────────────`;
 
   getPivotLinks(d.ioc, d.type).forEach((p) => {
-    r += `\n  ${p.name.padEnd(20)} ${p.url}`;
+    r += `\n  ${p.name.padEnd(20)} ${String(p.purpose || 'Pivot').padEnd(28)} ${p.url}`;
   });
 
   r += `
