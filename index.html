@@ -741,6 +741,95 @@
 
   .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
 
+  /* ── ANALYTICS ── */
+  .ana-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+  .ana-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  .ana-card.w6 { grid-column: span 6; }
+  .ana-card.w4 { grid-column: span 4; }
+  .ana-card.w8 { grid-column: span 8; }
+  .ana-card.w12 { grid-column: span 12; }
+  .ana-hdr {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--cond);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text2);
+    text-transform: uppercase;
+  }
+  .ana-body { padding: 12px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .kpi {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    background: rgba(255,255,255,.01);
+  }
+  .kpi .n { font-family: var(--cond); font-size: 22px; color: var(--accent); }
+  .kpi .l { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; }
+  .graph-wrap { background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 6px; min-height: 290px; }
+  .timeline { display: flex; flex-direction: column; gap: 7px; max-height: 290px; overflow-y: auto; }
+  .trow { display: grid; grid-template-columns: 90px 1fr; gap: 8px; border-bottom: 1px solid rgba(255,255,255,.04); padding: 6px 0; }
+  .tdate { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .tdesc { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+  .heatmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .hcell { border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; }
+  .hsrc { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+  .hval { font-family: var(--cond); font-size: 18px; color: var(--text); margin-top: 5px; }
+  .dist { display: flex; flex-direction: column; gap: 8px; }
+  .drow { display: grid; grid-template-columns: 96px 1fr 40px; gap: 8px; align-items: center; }
+  .dl { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; }
+  .db { height: 10px; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.03); }
+  .df { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+  .dv { font-family: var(--mono); font-size: 10px; color: var(--text2); text-align: right; }
+  .mini-map {
+    min-height: 180px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: radial-gradient(circle at 30% 35%, rgba(0,212,255,.09), transparent 32%), radial-gradient(circle at 72% 60%, rgba(0,212,255,.07), transparent 28%), rgba(0,0,0,.25);
+    padding: 10px;
+  }
+  .geo-pt { font-family: var(--mono); font-size: 10px; color: var(--text2); padding: 3px 0; }
+  .mx-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mx-cell {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    text-align: center;
+    padding: 5px;
+  }
+  .mx-cell.hot { border-color: rgba(255,59,92,.35); background: rgba(255,59,92,.1); color: var(--red); }
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th, .tbl td {
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    padding: 6px 4px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+  }
+  .tbl th { color: var(--text3); font-size: 9px; letter-spacing: .6px; }
+  .ana-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .ana-tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 3px 7px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text2);
+  }
+
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -885,6 +974,7 @@
           <div class="tab active" onclick="switchTab('overview')">Overview</div>
           <div class="tab" onclick="switchTab('sources')">Sources</div>
           <div class="tab" onclick="switchTab('pivots')">Pivots</div>
+          <div class="tab" onclick="switchTab('analytics')">Analytics</div>
           <div class="tab" onclick="switchTab('report')">L3 Report</div>
           <div class="tab" onclick="switchTab('raw')">Raw Data</div>
         </div>
@@ -900,6 +990,60 @@
         <div class="tpane" id="tpane-pivots">
           <div class="sec-title">External Investigation Links</div>
           <div class="pivots-grid" id="pivots-grid"></div>
+        </div>
+
+        <div class="tpane" id="tpane-analytics">
+          <div class="ana-grid">
+            <div class="ana-card w12">
+              <div class="ana-hdr">Operational Metrics</div>
+              <div class="ana-body">
+                <div class="kpi-row">
+                  <div class="kpi"><div class="n" id="kpi-nodes">0</div><div class="l">NODES</div></div>
+                  <div class="kpi"><div class="n" id="kpi-edges">0</div><div class="l">EDGES</div></div>
+                  <div class="kpi"><div class="n" id="kpi-confidence">0%</div><div class="l">CONFIDENCE</div></div>
+                  <div class="kpi"><div class="n" id="kpi-campaign">0</div><div class="l">CAMPAIGN TAGS</div></div>
+                </div>
+                <div class="ana-tags" id="ana-tags"></div>
+              </div>
+            </div>
+
+            <div class="ana-card w8">
+              <div class="ana-hdr">Relationship Graph (IOC ↔ Infra)</div>
+              <div class="ana-body">
+                <div class="graph-wrap" id="rel-graph"></div>
+              </div>
+            </div>
+
+            <div class="ana-card w4">
+              <div class="ana-hdr">Timeline</div>
+              <div class="ana-body timeline" id="timeline"></div>
+            </div>
+
+            <div class="ana-card w4">
+              <div class="ana-hdr">Detections Heatmap</div>
+              <div class="ana-body heatmap" id="heatmap"></div>
+            </div>
+
+            <div class="ana-card w4">
+              <div class="ana-hdr">Severity vs Confidence Matrix</div>
+              <div class="ana-body mx-grid" id="risk-matrix"></div>
+            </div>
+
+            <div class="ana-card w4">
+              <div class="ana-hdr">Findings Distribution</div>
+              <div class="ana-body dist" id="distribution"></div>
+            </div>
+
+            <div class="ana-card w6">
+              <div class="ana-hdr">Geo Map / Pivot Locations</div>
+              <div class="ana-body mini-map" id="geo-map"></div>
+            </div>
+
+            <div class="ana-card w6">
+              <div class="ana-hdr">Infrastructure Panel</div>
+              <div class="ana-body" id="infra-panel"></div>
+            </div>
+          </div>
         </div>
 
         <div class="tpane" id="tpane-report">
@@ -932,6 +1076,16 @@ let currentData = null;
 let currentIOC = '';
 let currentType = '';
 let sessionHistory = [];
+const RISK_WEIGHTS = {
+  virustotal: 0.25,
+  abuseipdb: 0.18,
+  ipqs: 0.15,
+  greynoise: 0.1,
+  otx: 0.1,
+  censys: 0.12,
+  whoisxml: 0.05,
+  sslmate: 0.05
+};
 
 (function tickClock() {
   const el = document.getElementById('clock');
@@ -1045,6 +1199,7 @@ function renderResults(d) {
   renderRiskHdr(d);
   renderCards(d);
   renderPivots(d);
+  renderAnalytics(d);
   renderReport(d);
   document.getElementById('raw-json').textContent = JSON.stringify(d, null, 2);
   switchTab('overview');
@@ -1206,6 +1361,31 @@ function buildCards(d) {
         ]
       });
     }
+    const asn = s.ipapi?.as || s.ipinfo?.org;
+    if (asn) {
+      cards.push({
+        name: 'ASN AUTO PIVOT',
+        icon: '🛰️',
+        rows: [
+          { key: 'ASN/ORG', val: asn, cls: 'hi' },
+          { key: 'Censys', val: `search.censys.io/search?q=${encodeURIComponent(asn)}` },
+          { key: 'Shodan', val: `shodan.io/search?query=${encodeURIComponent(asn)}` }
+        ]
+      });
+    }
+    const cs = s.censys?.services || s.censys?.result?.services;
+    if (Array.isArray(cs) && cs.length) {
+      cards.push({
+        name: 'CENSYS EXPOSURE',
+        icon: '🔭',
+        warn: cs.length > 4,
+        rows: [
+          { key: 'Services', val: cs.length, cls: cs.length > 8 ? 'warn' : 'ok' },
+          { key: 'Top Ports', val: cs.slice(0, 4).map((x) => x.port).filter(Boolean).join(', ') || '—' },
+          { key: 'Top Stack', val: cs.slice(0, 4).map((x) => x.service_name || x.extended_service_name).filter(Boolean).join(', ') || '—' }
+        ]
+      });
+    }
   }
   if (d.type === 'domain') {
     const vt = s.virustotal?.data?.attributes;
@@ -1273,6 +1453,42 @@ function buildCards(d) {
         ]
       });
     }
+    const wx = s.whoisxml;
+    if (wx && !wx.error) {
+      const rec = wx.WhoisRecord || wx.whoisRecord || {};
+      cards.push({
+        name: 'WHOISXML DEEP',
+        icon: '🧾',
+        rows: [
+          { key: 'Registrar', val: rec.registrarName || rec.registrarIANAID || '—' },
+          { key: 'Created', val: rec.createdDate || '—' },
+          { key: 'Expires', val: rec.expiresDate || '—' },
+          { key: 'Country', val: rec.registrant?.country || '—' }
+        ]
+      });
+    }
+    const sm = s.sslmate?.records || s.sslmate?.results || [];
+    if (Array.isArray(sm) && sm.length) {
+      cards.push({
+        name: 'SSLMATE CERT GRAPH',
+        icon: '📜',
+        rows: [
+          { key: 'Certificates', val: sm.length },
+          { key: 'Recent Name', val: sm[0]?.dns_names?.[0] || sm[0]?.name || '—' },
+          { key: 'Issuer', val: sm[0]?.issuer || sm[0]?.issuer_name || '—' }
+        ]
+      });
+    }
+    const typo = detectTyposquat(d.ioc);
+    cards.push({
+      name: 'TYPOSQUAT / HOMOGRAPH',
+      icon: '🧿',
+      warn: typo.risk !== 'LOW',
+      rows: [
+        { key: 'Risk', val: typo.risk, cls: typo.risk === 'HIGH' ? 'bad' : typo.risk === 'MEDIUM' ? 'warn' : 'ok' },
+        { key: 'Reason', val: typo.reason }
+      ]
+    });
   }
   if (d.type === 'hash') {
     const vt = s.virustotal?.data?.attributes;
@@ -1466,6 +1682,268 @@ function openAllPivots() {
   getPivotLinks(currentIOC, currentType).forEach((p, i) => setTimeout(() => window.open(p.url, '_blank'), i * 120));
 }
 
+function sourceScore(name, d) {
+  const s = d.sources || {};
+  if (name === 'virustotal') {
+    const st = s.virustotal?.data?.attributes?.last_analysis_stats || s.virustotal?.data?.attributes?.last_analysis_stats || {};
+    return Math.min(100, ((st.malicious || 0) * 10) + ((st.suspicious || 0) * 4));
+  }
+  if (name === 'abuseipdb') return s.abuseipdb?.data?.abuseConfidenceScore || 0;
+  if (name === 'ipqs') return s.ipqs?.fraud_score || s.ipqs_url?.risk_score || s.ipqs_email?.fraud_score || 0;
+  if (name === 'greynoise') return s.greynoise?.classification === 'malicious' ? 85 : s.greynoise?.noise ? 45 : 10;
+  if (name === 'otx') return Math.min(100, (s.otx?.pulse_info?.count || 0) * 8);
+  if (name === 'censys') return Math.min(100, ((s.censys?.services || []).length || (s.censys?.result?.services || []).length || 0) * 12);
+  if (name === 'whoisxml') return s.whoisxml?.error ? 0 : 35;
+  if (name === 'sslmate') return Math.min(100, ((s.sslmate?.records || []).length || 0) * 7);
+  return 0;
+}
+
+function computeExtendedRisk(d) {
+  const keys = Object.keys(RISK_WEIGHTS);
+  let weighted = 0;
+  let coverage = 0;
+  keys.forEach((k) => {
+    const v = sourceScore(k, d);
+    if (v > 0) coverage += RISK_WEIGHTS[k];
+    weighted += v * RISK_WEIGHTS[k];
+  });
+  const confidence = Math.min(100, Math.round((coverage / keys.reduce((a, b) => a + RISK_WEIGHTS[b], 0)) * 100));
+  return { score: Math.round(weighted), confidence };
+}
+
+function parseDateLite(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  if (!Number.isNaN(d.getTime())) return d;
+  if (typeof v === 'string' && /^\d{10}$/.test(v)) return new Date(Number(v) * 1000);
+  return null;
+}
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const c = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + c);
+    }
+  }
+  return dp[m][n];
+}
+
+function detectTyposquat(domain) {
+  if (!domain) return { risk: 'LOW', reason: 'N/A' };
+  const brands = ['google', 'microsoft', 'apple', 'paypal', 'amazon', 'facebook', 'whatsapp', 'netflix', 'dropbox', 'github'];
+  const root = domain.split('.').slice(0, -1).join('.') || domain;
+  const asciiSuspicious = /xn--|[0-9]{2,}/i.test(domain);
+  let minDist = 99;
+  let near = '';
+  brands.forEach((b) => {
+    const d = levenshtein(root.toLowerCase(), b);
+    if (d < minDist) {
+      minDist = d;
+      near = b;
+    }
+  });
+  if (asciiSuspicious || minDist <= 1) return { risk: 'HIGH', reason: asciiSuspicious ? 'Punycode/numeric pattern' : `Looks like ${near}` };
+  if (minDist === 2) return { risk: 'MEDIUM', reason: `Near known brand: ${near}` };
+  return { risk: 'LOW', reason: 'No strong typo signals' };
+}
+
+function collectInsights(d) {
+  const s = d.sources || {};
+  const nodes = [{ id: d.ioc, t: d.type || 'ioc' }];
+  const edges = [];
+  const timeline = [];
+  const tags = [];
+  const geo = [];
+  const infra = [];
+  const dist = { malicious: 0, suspicious: 0, benign: 0, proxy: 0, tor: 0 };
+
+  const addNode = (id, t) => {
+    if (!id) return;
+    if (!nodes.find((n) => n.id === id)) nodes.push({ id, t });
+    edges.push([d.ioc, id]);
+  };
+
+  const vt = s.virustotal?.data?.attributes;
+  const vtst = vt?.last_analysis_stats || {};
+  if (vt) {
+    dist.malicious += vtst.malicious || 0;
+    dist.suspicious += vtst.suspicious || 0;
+    dist.benign += vtst.harmless || 0;
+    if (vt.creation_date) timeline.push({ dt: new Date(vt.creation_date * 1000), txt: 'VT creation date observed' });
+  }
+
+  const ab = s.abuseipdb?.data;
+  if (ab?.lastReportedAt) timeline.push({ dt: parseDateLite(ab.lastReportedAt), txt: 'AbuseIPDB last report' });
+
+  const iq = s.ipqs || s.ipqs_url || s.ipqs_email || {};
+  if (iq.proxy) dist.proxy += 1;
+  if (iq.tor) dist.tor += 1;
+  if (iq.phishing || iq.malware) dist.malicious += 1;
+
+  const geoSrc = s.ipapi;
+  if (geoSrc && !geoSrc.error && geoSrc.lat && geoSrc.lon) {
+    geo.push(`${geoSrc.city || 'Unknown'}, ${geoSrc.country || 'Unknown'} (${geoSrc.lat}, ${geoSrc.lon})`);
+    addNode(geoSrc.as || geoSrc.isp, 'asn');
+  }
+  if (s.ipinfo?.org) addNode(s.ipinfo.org, 'asn');
+
+  const dnsA = s.dns?.a?.Answer || [];
+  dnsA.filter((r) => r.type === 1).forEach((r) => addNode(r.data, 'ip'));
+
+  const crt = Array.isArray(s.crtsh) ? [...new Set(s.crtsh.map((x) => x.name_value).filter(Boolean))] : [];
+  crt.slice(0, 25).forEach((x) => addNode(x, 'domain'));
+  if (crt.length) tags.push(`CRT:${crt.length}`);
+
+  const sslm = s.sslmate?.records || s.sslmate?.results || [];
+  if (Array.isArray(sslm)) {
+    sslm.slice(0, 25).forEach((r) => {
+      const n = r.dns_names?.[0] || r.name || r.domain;
+      addNode(n, 'cert');
+      const dt = parseDateLite(r.not_before || r.issued_at);
+      if (dt) timeline.push({ dt, txt: 'SSLMate cert issuance' });
+    });
+    if (sslm.length) tags.push(`SSLMATE:${sslm.length}`);
+  }
+
+  const cs = s.censys?.services || s.censys?.result?.services || [];
+  if (Array.isArray(cs)) {
+    cs.forEach((x) => {
+      const p = x.port || x.extended_service_name || x.service_name;
+      const n = x.service_name || x.extended_service_name || 'service';
+      infra.push({ port: p || '—', service: n, transport: x.transport_protocol || x.protocol || 'tcp' });
+      addNode(`${n}:${p}`, 'service');
+    });
+    if (cs.length) tags.push(`CENSYS:${cs.length}`);
+  }
+
+  const otxTags = s.otx?.tags || [];
+  otxTags.slice(0, 5).forEach((t) => tags.push(`OTX:${t}`));
+  const tfx = s.threatfox?.data || [];
+  if (Array.isArray(tfx) && tfx.length) {
+    tfx.slice(0, 5).forEach((x) => tags.push(`TFX:${x.threat_type || x.malware || 'ioc'}`));
+    dist.malicious += tfx.length;
+  }
+
+  if (d.type === 'domain') {
+    const typo = detectTyposquat(d.ioc);
+    tags.push(`TYPO:${typo.risk}`);
+  }
+
+  if (!timeline.length) timeline.push({ dt: parseDateLite(d.timestamp) || new Date(), txt: 'Investigation execution' });
+  timeline.sort((a, b) => (a.dt?.getTime() || 0) - (b.dt?.getTime() || 0));
+
+  return { nodes, edges, timeline, tags, geo, infra, dist };
+}
+
+function safeText(v) {
+  return String(v ?? '—').replace(/[<>&"']/g, (m) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+function renderRelationshipGraph(ins) {
+  const wrap = document.getElementById('rel-graph');
+  const w = 760;
+  const h = 280;
+  const cx = w / 2;
+  const cy = h / 2;
+  const outer = ins.nodes.slice(1, 19);
+  const core = ins.nodes[0];
+  const points = outer.map((n, i) => {
+    const a = (Math.PI * 2 * i) / Math.max(outer.length, 1);
+    return { n, x: cx + Math.cos(a) * 110, y: cy + Math.sin(a) * 110 };
+  });
+  const circles = points.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="12" fill="rgba(0,212,255,.13)" stroke="#00d4ff"/><text x="${p.x}" y="${p.y + 24}" text-anchor="middle" fill="#7a95b0" font-family="monospace" font-size="8">${safeText(p.n.t)}</text>`).join('');
+  const labels = points.map((p) => `<text x="${p.x}" y="${p.y + 4}" text-anchor="middle" fill="#c9d8e8" font-family="monospace" font-size="8">${safeText(String(p.n.id).substring(0, 14))}</text>`).join('');
+  const lines = points.map((p) => `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="rgba(0,212,255,.25)"/>`).join('');
+  wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="280" role="img" aria-label="Relationship graph">${lines}<circle cx="${cx}" cy="${cy}" r="16" fill="rgba(255,209,102,.2)" stroke="#ffd166"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#ffd166" font-family="monospace" font-size="9">IOC</text>${circles}${labels}<text x="${cx}" y="${h - 14}" text-anchor="middle" fill="#3d5168" font-family="monospace" font-size="9">${safeText(core?.id || '')}</text></svg>`;
+}
+
+function renderTimeline(ins) {
+  const el = document.getElementById('timeline');
+  el.innerHTML = ins.timeline.slice(0, 20).map((x) => {
+    const d = x.dt ? x.dt.toISOString().substring(0, 10) : 'n/a';
+    return `<div class="trow"><div class="tdate">${d}</div><div class="tdesc">${safeText(x.txt)}</div></div>`;
+  }).join('');
+}
+
+function renderHeatmap(d) {
+  const el = document.getElementById('heatmap');
+  const srcs = ['virustotal', 'abuseipdb', 'ipqs', 'greynoise', 'otx', 'censys'];
+  el.innerHTML = srcs.map((k) => {
+    const v = sourceScore(k, d);
+    const a = Math.min(0.35, (v / 100) * 0.35);
+    return `<div class="hcell" style="background:rgba(0,212,255,${a.toFixed(3)})"><div class="hsrc">${k.toUpperCase()}</div><div class="hval">${v}</div></div>`;
+  }).join('');
+}
+
+function renderRiskMatrix(d, ext) {
+  const el = document.getElementById('risk-matrix');
+  const score = d?.risk_score?.score || ext.score || 0;
+  const conf = ext.confidence || 0;
+  const sx = score >= 67 ? 2 : score >= 34 ? 1 : 0;
+  const cx = conf >= 67 ? 2 : conf >= 34 ? 1 : 0;
+  const labels = ['LOW', 'MED', 'HIGH'];
+  const out = [];
+  for (let r = 2; r >= 0; r--) {
+    for (let c = 0; c < 3; c++) {
+      const hot = r === sx && c === cx;
+      out.push(`<div class="mx-cell ${hot ? 'hot' : ''}">${labels[r]} / ${labels[c]}</div>`);
+    }
+  }
+  el.innerHTML = out.join('');
+}
+
+function renderDistribution(ins) {
+  const el = document.getElementById('distribution');
+  const vals = [
+    ['malicious', ins.dist.malicious],
+    ['suspicious', ins.dist.suspicious],
+    ['benign', ins.dist.benign],
+    ['proxy', ins.dist.proxy],
+    ['tor', ins.dist.tor]
+  ];
+  const mx = Math.max(1, ...vals.map((v) => v[1]));
+  el.innerHTML = vals.map(([k, v]) => `<div class="drow"><div class="dl">${k}</div><div class="db"><div class="df" style="width:${Math.round((v / mx) * 100)}%"></div></div><div class="dv">${v}</div></div>`).join('');
+}
+
+function renderGeo(ins) {
+  const el = document.getElementById('geo-map');
+  el.innerHTML = ins.geo.length
+    ? ins.geo.slice(0, 10).map((g) => `<div class="geo-pt">• ${safeText(g)}</div>`).join('')
+    : '<div class="geo-pt">• No geolocation pivots available</div>';
+}
+
+function renderInfra(ins) {
+  const el = document.getElementById('infra-panel');
+  const rows = ins.infra.length
+    ? ins.infra.slice(0, 15).map((r) => `<tr><td>${safeText(r.port)}</td><td>${safeText(r.service)}</td><td>${safeText(r.transport)}</td></tr>`).join('')
+    : '<tr><td>—</td><td>No Censys services available</td><td>—</td></tr>';
+  el.innerHTML = `<table class="tbl"><thead><tr><th>PORT</th><th>SERVICE</th><th>PROTO</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderAnalytics(d) {
+  const ins = collectInsights(d);
+  const ext = computeExtendedRisk(d);
+  document.getElementById('kpi-nodes').textContent = ins.nodes.length;
+  document.getElementById('kpi-edges').textContent = ins.edges.length;
+  document.getElementById('kpi-confidence').textContent = `${ext.confidence}%`;
+  const campaignCount = ins.tags.filter((t) => t.startsWith('OTX:') || t.startsWith('TFX:')).length;
+  document.getElementById('kpi-campaign').textContent = campaignCount;
+  document.getElementById('ana-tags').innerHTML = ins.tags.slice(0, 14).map((t) => `<span class="ana-tag">${safeText(t)}</span>`).join('');
+  renderRelationshipGraph(ins);
+  renderTimeline(ins);
+  renderHeatmap(d);
+  renderRiskMatrix(d, ext);
+  renderDistribution(ins);
+  renderGeo(ins);
+  renderInfra(ins);
+}
+
 function renderReport(d) {
   const risk = d?.risk_score || {};
   const score = risk.score || 0;
@@ -1633,7 +2111,7 @@ function switchTab(name) {
   document.querySelectorAll('.tpane').forEach((t) => t.classList.remove('active'));
   const pane = document.getElementById(`tpane-${name}`);
   if (pane) pane.classList.add('active');
-  const tabNames = ['overview', 'sources', 'pivots', 'report', 'raw'];
+  const tabNames = ['overview', 'sources', 'pivots', 'analytics', 'report', 'raw'];
   const idx = tabNames.indexOf(name);
   const tabs = document.querySelectorAll('.tab');
   if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
