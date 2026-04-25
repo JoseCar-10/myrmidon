@@ -1639,7 +1639,7 @@ function renderResults(d) {
   renderAnalytics(d);
   renderReport(d);
   document.getElementById('raw-json').textContent = JSON.stringify(d, null, 2);
-  switchTab('overview');
+  switchTab(d.type === 'url' ? 'sandbox' : 'overview');
 }
 
 const COLORS = {
@@ -2216,19 +2216,16 @@ function buildCards(d) {
     if (sb && !sb.error) {
       const det = sb.detections || {};
       const activeFlags = Object.entries(det).filter(([, v]) => !!v).map(([k]) => k.replace(/_/g, ' ').toUpperCase());
-      cards.push({
-        name: 'SAFE BROWSER DETONATION',
-        icon: '🧪',
-        warn: activeFlags.length > 0 || (sb.redirects || []).length > 0,
-        rows: [
-          { key: 'Status', val: sb.status || '—', cls: sb.status >= 400 ? 'warn' : 'ok' },
-          { key: 'Title', val: toShort(sb.title || '—', 80) },
-          { key: 'Final URL', val: toShort(sb.final_url || '—', 100), cls: sb.final_url && sb.final_url !== d.ioc ? 'warn' : '' },
-          { key: 'Redirects', val: String((sb.redirects || []).length), cls: (sb.redirects || []).length ? 'warn' : 'ok' },
-          { key: 'Requests', val: String((sb.requests || []).length) },
-          { key: 'Indicators', val: activeFlags.join(', ') || 'None', cls: activeFlags.length ? 'bad' : 'ok' }
-        ]
-      });
+      r += `Safe Browser  : Status ${sb.status || '—'} | Title: ${sb.title || '—'}
+`;
+      r += `Final URL     : ${sb.final_url || '—'}
+`;
+      r += `Redirects     : ${(sb.redirects || []).length}
+`;
+      r += `Requests      : ${(sb.requests || []).length}
+`;
+      r += `Indicators    : ${activeFlags.length ? activeFlags.join(', ') : 'None'}
+`;
     }
     const iq = s.ipqs_url;
     if (iq && !iq.error) {
@@ -2839,19 +2836,16 @@ Confidence : ${computeExtendedRisk(d).confidence}%
     if (sb && !sb.error) {
       const det = sb.detections || {};
       const activeFlags = Object.entries(det).filter(([, v]) => !!v).map(([k]) => k.replace(/_/g, ' ').toUpperCase());
-      cards.push({
-        name: 'SAFE BROWSER DETONATION',
-        icon: '🧪',
-        warn: activeFlags.length > 0 || (sb.redirects || []).length > 0,
-        rows: [
-          { key: 'Status', val: sb.status || '—', cls: sb.status >= 400 ? 'warn' : 'ok' },
-          { key: 'Title', val: toShort(sb.title || '—', 80) },
-          { key: 'Final URL', val: toShort(sb.final_url || '—', 100), cls: sb.final_url && sb.final_url !== d.ioc ? 'warn' : '' },
-          { key: 'Redirects', val: String((sb.redirects || []).length), cls: (sb.redirects || []).length ? 'warn' : 'ok' },
-          { key: 'Requests', val: String((sb.requests || []).length) },
-          { key: 'Indicators', val: activeFlags.join(', ') || 'None', cls: activeFlags.length ? 'bad' : 'ok' }
-        ]
-      });
+      r += `Safe Browser  : Status ${sb.status || '—'} | Title: ${sb.title || '—'}
+`;
+      r += `Final URL     : ${sb.final_url || '—'}
+`;
+      r += `Redirects     : ${(sb.redirects || []).length}
+`;
+      r += `Requests      : ${(sb.requests || []).length}
+`;
+      r += `Indicators    : ${activeFlags.length ? activeFlags.join(', ') : 'None'}
+`;
     }
     const iq = s.ipqs_url;
     if (iq && !iq.error) r += `IPQS URL     : Phishing: ${iq.phishing ? 'YES' : 'NO'} | Malware: ${iq.malware ? 'YES' : 'NO'} | Risk: ${iq.risk_score}/100\n`;
