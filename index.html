@@ -1015,6 +1015,29 @@
     background: rgba(228,0,43,.08);
   }
 
+
+
+  /* ── SAFE BROWSER / URL DETONATION ── */
+  .sandbox-layout { display: grid; grid-template-columns: 1.35fr .65fr; gap: 14px; }
+  .sandbox-card { background: var(--panel); border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+  .sandbox-hdr { padding: 11px 14px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.02); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .sandbox-title { font-family: var(--cond); font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--text); text-transform: uppercase; }
+  .sandbox-body { padding: 14px; }
+  .sandbox-shot { width: 100%; min-height: 330px; max-height: 620px; object-fit: contain; background: #020203; border: 1px solid var(--border2); border-radius: 6px; display: block; }
+  .sandbox-empty { min-height: 330px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); border: 1px dashed var(--border2); border-radius: 6px; font-family: var(--mono); font-size: 11px; color: var(--text3); text-align: center; padding: 18px; }
+  .sandbox-kv { display: flex; flex-direction: column; gap: 6px; }
+  .sandbox-row { display: grid; grid-template-columns: 118px 1fr; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .sandbox-k { font-family: var(--mono); font-size: 10px; color: var(--text3); text-transform: uppercase; }
+  .sandbox-v { font-family: var(--mono); font-size: 11px; color: var(--text2); word-break: break-word; text-align: right; }
+  .sandbox-v.bad { color: var(--red); } .sandbox-v.warn { color: var(--orange); } .sandbox-v.ok { color: var(--green); }
+  .sandbox-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .sandbox-badge { font-family: var(--mono); font-size: 9px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border2); color: var(--text2); background: rgba(255,255,255,.025); }
+  .sandbox-badge.bad { color: var(--red); border-color: rgba(228,0,43,.35); background: rgba(228,0,43,.10); }
+  .sandbox-badge.warn { color: var(--orange); border-color: rgba(255,140,66,.35); background: rgba(255,140,66,.08); }
+  .sandbox-badge.ok { color: var(--green); border-color: rgba(6,214,160,.30); background: rgba(6,214,160,.06); }
+  .sandbox-list { max-height: 270px; overflow-y: auto; background: rgba(0,0,0,.32); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-family: var(--mono); font-size: 10px; color: var(--text2); line-height: 1.55; white-space: pre-wrap; word-break: break-all; }
+  @media (max-width: 1100px) { .sandbox-layout { grid-template-columns: 1fr; } }
+
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -1050,6 +1073,7 @@
       <div class="sb-label">Investigation</div>
       <div class="nav-item active" onclick="navClick(this,'investigate')"><span class="nav-icon">🔍</span>IOC Investigate</div>
       <div class="nav-item" onclick="navClick(this,'pivots')"><span class="nav-icon">🔗</span>Quick Pivots</div>
+      <div class="nav-item" onclick="navClick(this,'sandbox'); switchTab('sandbox')"><span class="nav-icon">🧪</span>Safe Browser</div>
       <div class="nav-item" onclick="defangModal()"><span class="nav-icon">🛡️</span>Defang / Refang</div>
     </div>
     <div class="sb-div"></div>
@@ -1169,6 +1193,7 @@
           <div class="tab active" onclick="switchTab('overview')">Overview</div>
           <div class="tab" onclick="switchTab('sources')">Sources</div>
           <div class="tab" onclick="switchTab('pivots')">Pivots</div>
+          <div class="tab" onclick="switchTab('sandbox')">Safe Browser</div>
           <div class="tab" onclick="switchTab('analytics')">Analytics</div>
           <div class="tab" onclick="switchTab('report')">L3 Report</div>
           <div class="tab" onclick="switchTab('raw')">Raw Data</div>
@@ -1186,6 +1211,18 @@
           <div class="sec-title">External Investigation Links</div>
           <div class="pivot-url-panel" id="pivot-url-copy"></div>
           <div class="pivots-grid" id="pivots-grid"></div>
+        </div>
+
+
+
+        <div class="tpane" id="tpane-sandbox">
+          <div class="sec-title">Safe Browser / URL Detonation</div>
+          <div id="sandbox-panel">
+            <div class="sandbox-empty">
+              Submit a URL IOC to detonate it with the MYRMIDON Safe Browser API.<br>
+              The module will render screenshot, redirects, page title, network requests and phishing indicators.
+            </div>
+          </div>
         </div>
 
         <div class="tpane" id="tpane-analytics">
@@ -1268,6 +1305,7 @@
 
 <script>
 const WORKER = 'https://myrmidon-api.id24011.workers.dev';
+const SANDBOX = 'https://myrmidon-safe-browser45r3r.onrender.com';
 let currentData = null;
 let currentIOC = '';
 let currentType = '';
@@ -1455,10 +1493,25 @@ async function investigate() {
   document.getElementById('load-ioc').textContent = ioc;
 
   try {
-    const res = await fetch(`${WORKER}?ioc=${encodeURIComponent(ioc)}&type=${type}`);
-    if (!res.ok) throw new Error(`Worker ${res.status}`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
+    let res;
+    let data;
+
+    if (type === 'url') {
+      res = await fetch(`${SANDBOX}/sandbox`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: ioc })
+      });
+      if (!res.ok) throw new Error(`Safe Browser ${res.status}`);
+      const sandboxRaw = await res.json();
+      if (sandboxRaw.error) throw new Error(sandboxRaw.error);
+      data = normalizeSandboxData(ioc, sandboxRaw);
+    } else {
+      res = await fetch(`${WORKER}?ioc=${encodeURIComponent(ioc)}&type=${type}`);
+      if (!res.ok) throw new Error(`Worker ${res.status}`);
+      data = await res.json();
+      if (data.error) throw new Error(data.error);
+    }
 
     currentData = data;
     addHistory(ioc, type, data.risk_score);
@@ -1471,6 +1524,108 @@ async function investigate() {
   }
 }
 
+
+function sandboxScreenshotSrc(screenshot) {
+  if (!screenshot) return '';
+  if (typeof screenshot === 'string') return `data:image/png;base64,${screenshot}`;
+  if (screenshot.type === 'Buffer' && Array.isArray(screenshot.data)) {
+    const bytes = new Uint8Array(screenshot.data);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return `data:image/png;base64,${btoa(binary)}`;
+  }
+  return '';
+}
+
+function sandboxRisk(sandbox) {
+  const det = sandbox?.detections || {};
+  const redirects = sandbox?.redirects || [];
+  const reqs = sandbox?.requests || [];
+  let score = 10;
+  const flags = [];
+  if (det.credential_form) { score += 35; flags.push('CREDENTIAL FORM DETECTED'); }
+  if (det.fake_cloudflare) { score += 25; flags.push('FAKE CLOUDFLARE / HUMAN VERIFICATION LURE'); }
+  if (det.powershell_lure) { score += 35; flags.push('POWERSHELL / WIN+R LURE'); }
+  if (det.clipboard_lure) { score += 30; flags.push('CLIPBOARD LURE'); }
+  if (redirects.length >= 1) { score += Math.min(20, redirects.length * 5); flags.push('REDIRECT CHAIN OBSERVED'); }
+  if (reqs.length >= 40) { score += 8; flags.push('HIGH NETWORK REQUEST VOLUME'); }
+  score = Math.min(100, score);
+  const level = score >= 85 ? 'CRITICAL' : score >= 65 ? 'HIGH' : score >= 35 ? 'MEDIUM' : score <= 15 ? 'CLEAN' : 'LOW';
+  return { score, level, flags };
+}
+
+function normalizeSandboxData(inputUrl, sandbox) {
+  const risk = sandboxRisk(sandbox);
+  return {
+    ioc: inputUrl,
+    type: 'url',
+    timestamp: new Date().toISOString(),
+    sources: { sandbox, safe_browser: sandbox },
+    risk_score: risk,
+    sandbox_analysis: sandbox
+  };
+}
+
+function renderSandboxPanel(d) {
+  const el = document.getElementById('sandbox-panel');
+  if (!el) return;
+  const sb = d?.sources?.sandbox || d?.sandbox_analysis;
+  if (!sb) {
+    el.innerHTML = `<div class="sandbox-empty">Safe Browser result is available only for URL investigations.<br>Submit a URL such as https://example.com to generate screenshot and page behavior analysis.</div>`;
+    return;
+  }
+  const shot = sandboxScreenshotSrc(sb.screenshot_base64);
+  const det = sb.detections || {};
+  const active = Object.entries(det).filter(([, v]) => !!v).map(([k]) => k.replace(/_/g, ' ').toUpperCase());
+  const inactive = Object.entries(det).filter(([, v]) => !v).map(([k]) => k.replace(/_/g, ' ').toUpperCase());
+  const reqs = [...new Set(sb.requests || [])].slice(0, 80);
+  const redirects = (sb.redirects || []).map((r) => `${r.status || '-'}  ${r.url || ''}`);
+  el.innerHTML = `
+    <div class="sandbox-layout">
+      <div class="sandbox-card">
+        <div class="sandbox-hdr"><div class="sandbox-title">Screenshot</div><button class="btn-copy" onclick="copySandboxEvidence()">📋 Copy Sandbox Evidence</button></div>
+        <div class="sandbox-body">${shot ? `<img class="sandbox-shot" src="${shot}" alt="Safe Browser screenshot">` : `<div class="sandbox-empty">No screenshot returned by sandbox.</div>`}</div>
+      </div>
+      <div class="sandbox-card">
+        <div class="sandbox-hdr"><div class="sandbox-title">Page Analysis</div></div>
+        <div class="sandbox-body">
+          <div class="sandbox-kv">
+            <div class="sandbox-row"><div class="sandbox-k">Input</div><div class="sandbox-v">${escapeHtml(sb.input_url || d.ioc || '—')}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Final URL</div><div class="sandbox-v ${sb.final_url && sb.final_url !== sb.input_url ? 'warn' : 'ok'}">${escapeHtml(sb.final_url || '—')}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Status</div><div class="sandbox-v ${sb.status >= 400 ? 'warn' : 'ok'}">${escapeHtml(sb.status || '—')}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Title</div><div class="sandbox-v">${escapeHtml(sb.title || '—')}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Redirects</div><div class="sandbox-v ${redirects.length ? 'warn' : 'ok'}">${redirects.length}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Requests</div><div class="sandbox-v">${reqs.length}</div></div>
+          </div>
+          <div class="sandbox-badges">
+            ${active.map((x) => `<span class="sandbox-badge bad">${escapeHtml(x)}</span>`).join('')}
+            ${inactive.slice(0, 4).map((x) => `<span class="sandbox-badge ok">NO ${escapeHtml(x)}</span>`).join('')}
+            ${active.length === 0 ? `<span class="sandbox-badge ok">NO ACTIVE PHISHING LURES DETECTED</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="sandbox-card"><div class="sandbox-hdr"><div class="sandbox-title">Redirect Chain</div></div><div class="sandbox-body"><div class="sandbox-list">${redirects.length ? escapeHtml(redirects.join('\n')) : 'No HTTP redirect events captured.'}</div></div></div>
+      <div class="sandbox-card"><div class="sandbox-hdr"><div class="sandbox-title">Network Requests</div></div><div class="sandbox-body"><div class="sandbox-list">${reqs.length ? escapeHtml(reqs.join('\n')) : 'No network requests captured.'}</div></div></div>
+    </div>`;
+}
+
+function copySandboxEvidence() {
+  const sb = currentData?.sources?.sandbox || currentData?.sandbox_analysis;
+  if (!sb) return;
+  const det = sb.detections || {};
+  const active = Object.entries(det).filter(([, v]) => !!v).map(([k]) => k.replace(/_/g, ' '));
+  const risk = currentData?.risk_score || {};
+  const text = `SAFE BROWSER ANALYSIS\n\nURL: ${sb.input_url || currentData.ioc}\nFinal URL: ${sb.final_url || 'N/A'}\nStatus: ${sb.status || 'N/A'}\nTitle: ${sb.title || 'N/A'}\nRisk: ${risk.level || 'UNKNOWN'} (${risk.score || 0}/100)\nRedirects: ${(sb.redirects || []).length}\nRequests: ${(sb.requests || []).length}\nDetections: ${active.length ? active.join(', ') : 'None'}\n\nRecommended action: Validate the final destination, review proxy/DNS/EDR telemetry, and block the URL/domain if not business-related or if phishing indicators are confirmed.`;
+  navigator.clipboard.writeText(text);
+}
+
+function escapeHtml(v) {
+  return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 function renderResults(d) {
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('loading-state').classList.remove('on');
@@ -1480,6 +1635,7 @@ function renderResults(d) {
   renderGeoStrip(d);
   renderCards(d);
   renderPivots(d);
+  renderSandboxPanel(d);
   renderAnalytics(d);
   renderReport(d);
   document.getElementById('raw-json').textContent = JSON.stringify(d, null, 2);
@@ -2056,6 +2212,24 @@ function buildCards(d) {
     }
   }
   if (d.type === 'url') {
+    const sb = s.sandbox;
+    if (sb && !sb.error) {
+      const det = sb.detections || {};
+      const activeFlags = Object.entries(det).filter(([, v]) => !!v).map(([k]) => k.replace(/_/g, ' ').toUpperCase());
+      cards.push({
+        name: 'SAFE BROWSER DETONATION',
+        icon: '🧪',
+        warn: activeFlags.length > 0 || (sb.redirects || []).length > 0,
+        rows: [
+          { key: 'Status', val: sb.status || '—', cls: sb.status >= 400 ? 'warn' : 'ok' },
+          { key: 'Title', val: toShort(sb.title || '—', 80) },
+          { key: 'Final URL', val: toShort(sb.final_url || '—', 100), cls: sb.final_url && sb.final_url !== d.ioc ? 'warn' : '' },
+          { key: 'Redirects', val: String((sb.redirects || []).length), cls: (sb.redirects || []).length ? 'warn' : 'ok' },
+          { key: 'Requests', val: String((sb.requests || []).length) },
+          { key: 'Indicators', val: activeFlags.join(', ') || 'None', cls: activeFlags.length ? 'bad' : 'ok' }
+        ]
+      });
+    }
     const iq = s.ipqs_url;
     if (iq && !iq.error) {
       cards.push({
@@ -2661,6 +2835,24 @@ Confidence : ${computeExtendedRisk(d).confidence}%
     if (iq && !iq.error) r += `IPQS Email   : Valid: ${iq.valid ? 'YES' : 'NO'} | Disposable: ${iq.disposable ? 'YES' : 'NO'} | Fraud: ${iq.fraud_score}/100\n`;
   }
   if (d.type === 'url') {
+    const sb = s.sandbox;
+    if (sb && !sb.error) {
+      const det = sb.detections || {};
+      const activeFlags = Object.entries(det).filter(([, v]) => !!v).map(([k]) => k.replace(/_/g, ' ').toUpperCase());
+      cards.push({
+        name: 'SAFE BROWSER DETONATION',
+        icon: '🧪',
+        warn: activeFlags.length > 0 || (sb.redirects || []).length > 0,
+        rows: [
+          { key: 'Status', val: sb.status || '—', cls: sb.status >= 400 ? 'warn' : 'ok' },
+          { key: 'Title', val: toShort(sb.title || '—', 80) },
+          { key: 'Final URL', val: toShort(sb.final_url || '—', 100), cls: sb.final_url && sb.final_url !== d.ioc ? 'warn' : '' },
+          { key: 'Redirects', val: String((sb.redirects || []).length), cls: (sb.redirects || []).length ? 'warn' : 'ok' },
+          { key: 'Requests', val: String((sb.requests || []).length) },
+          { key: 'Indicators', val: activeFlags.join(', ') || 'None', cls: activeFlags.length ? 'bad' : 'ok' }
+        ]
+      });
+    }
     const iq = s.ipqs_url;
     if (iq && !iq.error) r += `IPQS URL     : Phishing: ${iq.phishing ? 'YES' : 'NO'} | Malware: ${iq.malware ? 'YES' : 'NO'} | Risk: ${iq.risk_score}/100\n`;
   }
@@ -2833,7 +3025,7 @@ function switchTab(name) {
   document.querySelectorAll('.tpane').forEach((t) => t.classList.remove('active'));
   const pane = document.getElementById(`tpane-${name}`);
   if (pane) pane.classList.add('active');
-  const tabNames = ['overview', 'sources', 'pivots', 'analytics', 'report', 'raw'];
+  const tabNames = ['overview', 'sources', 'pivots', 'sandbox', 'analytics', 'report', 'raw'];
   const idx = tabNames.indexOf(name);
   const tabs = document.querySelectorAll('.tab');
   if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
