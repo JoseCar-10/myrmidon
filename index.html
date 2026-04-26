@@ -1369,6 +1369,45 @@ const RISK_WEIGHTS = {
   setInterval(tick, 1000);
 })();
 
+function isIPv4(v) {
+  if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(v)) return false;
+  return v.split('.').every((x) => Number(x) >= 0 && Number(x) <= 255);
+}
+
+function isIPv6(v) {
+  const s = String(v || '').trim();
+  if (!s.includes(':')) return false;
+  if (/[^0-9a-fA-F:.]/.test(s)) return false;
+  if ((s.match(/::/g) || []).length > 1) return false;
+  // Practical IPv6 validation for SOC IOC routing. Supports compressed IPv6 and IPv4-mapped IPv6.
+  const ipv4Mapped = s.includes('.') && s.includes(':');
+  if (ipv4Mapped) {
+    const last = s.substring(s.lastIndexOf(':') + 1);
+    if (!isIPv4(last)) return false;
+  }
+  const parts = s.split(':');
+  if (s.includes('::')) {
+    return parts.length <= 8 && parts.some((p) => p === '') && parts.every((p) => p === '' || /^[0-9a-fA-F]{1,4}$/.test(p) || (ipv4Mapped && isIPv4(p)));
+  }
+  return parts.length === 8 && parts.every((p) => /^[0-9a-fA-F]{1,4}$/.test(p));
+}
+
+function boolish(v) {
+  return v === true || v === 1 || v === '1' || String(v).toLowerCase() === 'true' || String(v).toLowerCase() === 'yes';
+}
+
+function normalizeIpqs(iq) {
+  const x = iq || {};
+  const fraud = Number(x.fraud_score ?? x.risk_score ?? x.score ?? 0) || 0;
+  const vpn = boolish(x.vpn) || boolish(x.active_vpn) || boolish(x.is_vpn) || boolish(x.hosting_provider);
+  const proxy = boolish(x.proxy) || boolish(x.active_proxy) || boolish(x.is_proxy) || boolish(x.recent_abuse) || boolish(x.public_access_point);
+  const tor = boolish(x.tor) || boolish(x.active_tor) || boolish(x.is_tor);
+  const bot = boolish(x.bot_status) || boolish(x.bot) || boolish(x.crawler);
+  const mobile = boolish(x.mobile);
+  const provider = x.ISP || x.isp || x.organization || x.org || x.connection_type || '';
+  return { ...x, fraud, vpn, proxy, tor, bot, mobile, provider };
+}
+
 function detectType(raw) {
   const ioc = raw
     .replace(/\[\.\]/g, '.')
@@ -1381,7 +1420,7 @@ function detectType(raw) {
   if (/^[a-f0-9]{40}$/i.test(compact)) return 'hash';
   if (/^[a-f0-9]{32}$/i.test(compact)) return 'hash';
   if (/^[\w.+\-]+@[\w.\-]+\.[a-z]{2,}$/i.test(ioc)) return 'email';
-  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ioc)) return 'ip';
+  if (isIPv4(ioc) || isIPv6(ioc)) return 'ip';
   if (/^[a-z0-9][a-z0-9\-]*(\.[a-z0-9][a-z0-9\-]*)+$/i.test(ioc)) return 'domain';
   if (analyzeEncodedString(compact).signals.length || compact.length >= 12) return 'unknown_string';
   return 'unknown';
@@ -1759,7 +1798,7 @@ function getGeoIntel(d) {
   const s = d?.sources || {};
   const ipapi = s.ipapi || {};
   const ipinfo = s.ipinfo || {};
-  const ipqs = s.ipqs || {};
+  const ipqs = normalizeIpqs(s.ipqs || {});
   const greynoise = s.greynoise || {};
 
   const lat = Number(ipapi.lat ?? ipinfo.loc?.split(',')?.[0]);
@@ -1781,7 +1820,7 @@ function getGeoIntel(d) {
     proxy: !!(ipapi.proxy || ipqs.proxy),
     vpn: !!ipqs.vpn,
     tor: !!ipqs.tor,
-    bot: !!ipqs.bot_status,
+    bot: !!ipqs.bot,
     noise: !!greynoise.noise,
     riot: !!greynoise.riot,
     gnClass: greynoise.classification || 'unknown'
@@ -2028,20 +2067,23 @@ function buildCards(d) {
         ]
       });
     }
-    const iq = s.ipqs;
-    if (iq && !iq.error) {
-      const fraud = iq.fraud_score || 0;
+    const iqRaw = s.ipqs;
+    const iq = normalizeIpqs(iqRaw);
+    if (iqRaw && !iqRaw.error) {
+      const fraud = iq.fraud || 0;
+      const infraSignal = iq.vpn || iq.proxy || iq.tor || iq.bot;
       cards.push({
         name: 'IPQUALITYSCORE',
         icon: '🕵️',
-        warn: iq.vpn || iq.proxy || iq.tor,
+        warn: infraSignal,
         rows: [
           { key: 'Fraud Score', val: `${fraud}/100`, cls: fraud > 75 ? 'bad' : fraud > 40 ? 'warn' : 'ok' },
           { key: 'VPN', val: iq.vpn ? '⚠ YES' : 'NO', cls: iq.vpn ? 'warn' : '' },
           { key: 'Proxy', val: iq.proxy ? '⚠ YES' : 'NO', cls: iq.proxy ? 'warn' : '' },
           { key: 'TOR', val: iq.tor ? '🚨 YES' : 'NO', cls: iq.tor ? 'bad' : '' },
-          { key: 'Bot', val: iq.bot_status ? '⚠ YES' : 'NO', cls: iq.bot_status ? 'warn' : '' },
-          { key: 'Mobile', val: iq.mobile ? 'YES' : 'NO' }
+          { key: 'Bot', val: iq.bot ? '⚠ YES' : 'NO', cls: iq.bot ? 'warn' : '' },
+          { key: 'Mobile', val: iq.mobile ? 'YES' : 'NO' },
+          { key: 'Provider Signal', val: iq.provider || '—' }
         ]
       });
     }
@@ -2469,7 +2511,7 @@ function sourceScore(name, d) {
     return Math.min(100, ((st.malicious || 0) * 10) + ((st.suspicious || 0) * 4));
   }
   if (name === 'abuseipdb') return s.abuseipdb?.data?.abuseConfidenceScore || 0;
-  if (name === 'ipqs') return s.ipqs?.fraud_score || s.ipqs_url?.risk_score || s.ipqs_email?.fraud_score || 0;
+  if (name === 'ipqs') return normalizeIpqs(s.ipqs || s.ipqs_url || s.ipqs_email || {}).fraud || 0;
   if (name === 'greynoise') return s.greynoise?.classification === 'malicious' ? 85 : s.greynoise?.noise ? 45 : 10;
   if (name === 'otx') return Math.min(100, (s.otx?.pulse_info?.count || 0) * 8);
   if (name === 'censys') return Math.min(100, ((s.censys?.services || []).length || (s.censys?.result?.services || []).length || 0) * 12);
@@ -2577,10 +2619,10 @@ function collectInsights(d) {
   const ab = s.abuseipdb?.data;
   if (ab?.lastReportedAt) timeline.push({ dt: parseDateLite(ab.lastReportedAt), txt: 'AbuseIPDB last report' });
 
-  const iq = s.ipqs || s.ipqs_url || s.ipqs_email || {};
-  if (iq.proxy) dist.proxy += 1;
+  const iq = normalizeIpqs(s.ipqs || s.ipqs_url || s.ipqs_email || {});
+  if (iq.proxy || iq.vpn) dist.proxy += 1;
   if (iq.tor) dist.tor += 1;
-  if (iq.phishing || iq.malware) dist.malicious += 1;
+  if (iq.phishing || iq.malware || iq.fraud >= 75) dist.malicious += 1;
 
   const geoSrc = s.ipapi;
   if (geoSrc && !geoSrc.error && geoSrc.lat && geoSrc.lon) {
@@ -2870,7 +2912,7 @@ function copyEvidenceTicket() {
   const abuse = d?.sources?.abuseipdb?.data || {};
   const vt = d?.sources?.virustotal?.data?.attributes?.last_analysis_stats || {};
   const gn = d?.sources?.greynoise || {};
-  const ipqs = d?.sources?.ipqs || {};
+  const ipqs = normalizeIpqs(d?.sources?.ipqs || {});
   const local = d?.local_analysis || null;
 
   const abuseScore = abuse.abuseConfidenceScore ?? 'N/A';
@@ -2885,7 +2927,7 @@ function copyEvidenceTicket() {
     evidence.push(`- AbuseIPDB: ${abuseScore}/100, ${abuseReports} reports`);
     evidence.push(`- VirusTotal: ${vtMalicious} malicious, ${vtSuspicious} suspicious`);
     evidence.push(`- GreyNoise: ${gnClass} / noise observed: ${gnNoise}`);
-    evidence.push(`- IPQS: TOR=${ipqs.tor ? 'YES' : 'NO'}, VPN=${ipqs.vpn ? 'YES' : 'NO'}, Proxy=${ipqs.proxy ? 'YES' : 'NO'}, Fraud=${ipqs.fraud_score ?? 'N/A'}/100`);
+    evidence.push(`- IPQS: TOR=${ipqs.tor ? 'YES' : 'NO'}, VPN=${ipqs.vpn ? 'YES' : 'NO'}, Proxy=${ipqs.proxy ? 'YES' : 'NO'}, Fraud=${ipqs.fraud ?? 'N/A'}/100`);
   } else if (d.type === 'unknown_string') {
     evidence.push(`- Encoded/String Analyzer: ${(local?.signals || []).join(', ') || 'Unknown high-entropy string'}`);
     evidence.push(`- Risk Flags: ${(local?.flags || []).join(', ') || 'None'}`);
