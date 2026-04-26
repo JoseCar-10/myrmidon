@@ -1074,7 +1074,8 @@
       <div class="nav-item active" onclick="navClick(this,'investigate')"><span class="nav-icon">🔍</span>IOC Investigate</div>
       <div class="nav-item" onclick="navClick(this,'pivots')"><span class="nav-icon">🔗</span>Quick Pivots</div>
       <div class="nav-item" onclick="navClick(this,'sandbox'); switchTab('sandbox')"><span class="nav-icon">🧪</span>Safe Browser</div>
-      <div class="nav-item" onclick="defangModal()"><span class="nav-icon">🛡️</span>Defang / Refang</div>
+      <div class="nav-item" onclick="navClick(this,'phishing'); switchTab('phishing')"><span class="nav-icon">🎣</span>Phishing Detector</div>
+      <div class="nav-item" onclick="navClick(this,'defangpro'); switchTab('defangpro')"><span class="nav-icon">🛡️</span>Defang Pro</div>
     </div>
     <div class="sb-div"></div>
     <div class="sb-section">
@@ -1195,6 +1196,8 @@
           <div class="tab" onclick="switchTab('pivots')">Pivots</div>
           <div class="tab" onclick="switchTab('sandbox')">Safe Browser</div>
           <div class="tab" onclick="switchTab('analytics')">Analytics</div>
+          <div class="tab" onclick="switchTab('phishing')">Phishing Detector</div>
+          <div class="tab" onclick="switchTab('defangpro')">Defang Pro</div>
           <div class="tab" onclick="switchTab('report')">L3 Report</div>
           <div class="tab" onclick="switchTab('raw')">Raw Data</div>
         </div>
@@ -1216,23 +1219,14 @@
 
 
         <div class="tpane" id="tpane-sandbox">
-
-          <div class="sandbox-card">
-
-            <div class="sandbox-hdr">
-              <div class="sandbox-title">Safe Browser Sandbox</div>
+          <div class="sec-title">Safe Browser Sandbox</div>
+          <div id="sandbox-panel">
+            <div class="sandbox-empty">
+              Safe Browser result is available only for URL investigations.<br><br>
+              Submit a URL such as:<br>
+              https://example.com
             </div>
-
-            <div id="sandbox-panel" class="sandbox-body">
-              <div class="sandbox-empty">
-                Safe Browser result is available only for URL investigations.<br><br>
-                Submit a URL such as:<br>
-                https://example.com
-              </div>
-            </div>
-
           </div>
-
         </div>
 
         <div class="tpane" id="tpane-analytics">
@@ -1285,6 +1279,41 @@
             <div class="ana-card w6">
               <div class="ana-hdr">Infrastructure Panel</div>
               <div class="ana-body" id="infra-panel"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tpane" id="tpane-phishing">
+          <div class="sec-title">Phishing Detector Mode</div>
+          <div class="report-box">
+            <div class="report-hdr">
+              <div class="report-title">Email / URL / Text Heuristic Analysis</div>
+              <div class="report-btns">
+                <button class="btn-copy" onclick="runPhishingDetector()">Analyze</button>
+                <button class="btn-copy" onclick="copyPhishingResult()">Copy</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea class="notes-area" id="phish-input" placeholder="Paste suspicious email body, URL, headers, QR text, lure text, or HTML snippet..."></textarea>
+              <div id="phish-output" class="raw-json" style="margin-top:12px; white-space:pre-wrap;">Awaiting phishing content.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tpane" id="tpane-defangpro">
+          <div class="sec-title">Defang / Refang Pro</div>
+          <div class="report-box">
+            <div class="report-hdr">
+              <div class="report-title">Bulk IOC Sanitizer</div>
+              <div class="report-btns">
+                <button class="btn-copy" onclick="runDefangPro('defang')">Defang</button>
+                <button class="btn-copy" onclick="runDefangPro('refang')">Refang</button>
+                <button class="btn-copy" onclick="copyDefangPro()">Copy Output</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea class="notes-area" id="defang-input" placeholder="Paste URLs, domains, IPs, emails or IOC blocks here..."></textarea>
+              <textarea class="notes-area" id="defang-output" placeholder="Output will appear here..." readonly></textarea>
             </div>
           </div>
         </div>
@@ -1489,7 +1518,6 @@ async function investigate() {
   }
 
   hideErr();
-
   currentIOC = type === 'unknown_string' ? ioc.replace(/\s+/g, '') : ioc;
   currentType = type;
 
@@ -1509,6 +1537,11 @@ async function investigate() {
     let res;
     let data;
 
+    /*
+      SAFE BROWSER MINIMAL MODE
+      Purpose: isolate URL detonation from the large IOC rendering pipeline.
+      This avoids legacy report/render dependencies and keeps Playwright results stable.
+    */
     if (type === 'url') {
       res = await fetch(`${SANDBOX}/sandbox`, {
         method: 'POST',
@@ -1519,16 +1552,23 @@ async function investigate() {
       if (!res.ok) throw new Error(`Safe Browser ${res.status}`);
 
       const sandboxRaw = await res.json();
-
       if (sandboxRaw.error) throw new Error(sandboxRaw.error);
 
-      currentData = sandboxRaw;
-      currentIOC = ioc;
-      currentType = 'url';
+      const sandboxData = normalizeSandboxData(ioc, sandboxRaw);
+      currentData = sandboxData;
+      addHistory(ioc, 'url', sandboxData.risk_score);
 
       document.getElementById('loading-state').classList.remove('on');
       document.getElementById('empty-state').style.display = 'none';
       document.getElementById('results').classList.add('on');
+
+      renderRiskHdr(sandboxData);
+      renderDecisionStrip(sandboxData);
+      renderGeoStrip(sandboxData);
+      renderPivots(sandboxData);
+      renderAnalytics(sandboxData);
+      renderReport(sandboxData);
+      document.getElementById('raw-json').textContent = JSON.stringify(sandboxRaw, null, 2);
 
       switchTab('sandbox');
       renderSafeBrowserOnly(sandboxRaw);
@@ -1537,11 +1577,9 @@ async function investigate() {
     }
 
     res = await fetch(`${WORKER}?ioc=${encodeURIComponent(ioc)}&type=${type}`);
-
     if (!res.ok) throw new Error(`Worker ${res.status}`);
 
     data = await res.json();
-
     if (data.error) throw new Error(data.error);
 
     currentData = data;
@@ -1555,7 +1593,6 @@ async function investigate() {
     document.getElementById('btn-go').disabled = false;
   }
 }
-
 
 function sandboxScreenshotSrc(screenshot) {
   if (!screenshot) return '';
@@ -2800,158 +2837,8 @@ function renderAnalytics(d) {
 }
 
 function renderReport(d) {
-  const risk = d?.risk_score || {};
-  const score = risk.score || 0;
-  const level = risk.level || 'UNKNOWN';
-  const flags = risk.flags || [];
-  const ts = new Date().toISOString();
-  const s = d.sources || {};
-
-  let r = `═══════════════════════════════════════════════════════════════════
-MYRMIDON INTEL CONSOLE — SOC L3 INVESTIGATION REPORT
-═══════════════════════════════════════════════════════════════════
-Generated  : ${ts}
-Platform   : MYRMIDON Intel Console v1.0
-Report Type: Automated Threat Intelligence Enrichment
-
-───────────────────────────────────────────────────────────────────
-[1] INDICATOR OVERVIEW
-───────────────────────────────────────────────────────────────────
-IOC        : ${d.ioc}
-Type       : ${(d.type || '').toUpperCase()}
-Defanged   : ${defang(d.ioc || '')}
-Risk Score : ${score}/100
-Risk Level : ${level}
-Flags      : ${flags.join(', ') || 'None'}
-Decision   : ${analystDecision(d).verdict}
-Confidence : ${computeExtendedRisk(d).confidence}%
-
-───────────────────────────────────────────────────────────────────
-[2] EVIDENCE GATHERED
-───────────────────────────────────────────────────────────────────
-`;
-
-  if (d.type === 'ip') {
-    const ab = s.abuseipdb?.data;
-    const gn = s.greynoise;
-    const geo = s.ipapi;
-    const iq = s.ipqs;
-    const vt = s.virustotal?.data?.attributes?.last_analysis_stats;
-    if (ab) r += `AbuseIPDB    : Score ${ab.abuseConfidenceScore}/100 | Reports: ${ab.totalReports} | Type: ${ab.usageType || '?'}\n`;
-    if (gn && !gn.error) r += `GreyNoise    : ${gn.classification || '?'} | Noise: ${gn.noise ? 'YES' : 'NO'} | RIOT: ${gn.riot ? 'YES' : 'NO'}\n`;
-    if (geo && !geo.error) r += `GeoLocation  : ${geo.city}, ${geo.regionName}, ${geo.country} | ISP: ${geo.isp}\n`;
-    if (iq && !iq.error) r += `IPQS         : Fraud ${iq.fraud_score}/100 | VPN: ${iq.vpn ? 'YES' : 'NO'} | Proxy: ${iq.proxy ? 'YES' : 'NO'} | TOR: ${iq.tor ? 'YES' : 'NO'}\n`;
-    if (vt) r += `VirusTotal   : Malicious: ${vt.malicious} | Suspicious: ${vt.suspicious} | Harmless: ${vt.harmless}\n`;
-  }
-  if (d.type === 'domain') {
-    const vt = s.virustotal?.data?.attributes;
-    const otx = s.otx;
-    const dns = s.dns?.a;
-    if (vt) r += `VirusTotal   : Malicious: ${vt.last_analysis_stats?.malicious || 0} | Rep: ${vt.reputation || 0}\n`;
-    if (otx && !otx.error) r += `OTX Pulses   : ${otx.pulse_info?.count || 0} threat intel pulses\n`;
-    if (dns?.Answer) r += `DNS A        : ${dns.Answer.filter((x) => x.type === 1).map((x) => x.data).join(', ')}\n`;
-  }
-  if (d.type === 'hash') {
-    const vt = s.virustotal?.data?.attributes;
-    const mb = s.malwarebazaar?.data?.[0];
-    if (vt) r += `VirusTotal   : Malicious: ${vt.last_analysis_stats?.malicious || 0} | Type: ${vt.type_description || '?'} | Name: ${vt.meaningful_name || '?'}\n`;
-    if (mb) r += `MalwareBazaar: KNOWN MALWARE | Family: ${mb.malware_family || '?'} | First: ${mb.first_seen?.substring(0, 10) || '—'}\n`;
-  }
-  if (d.type === 'email') {
-    const hibp = s.hibp;
-    const iq = s.ipqs_email;
-    if (Array.isArray(hibp)) r += `HIBP         : ${hibp.length} breach(es)${hibp.length ? ': ' + hibp.slice(0, 3).map((b) => b.Name).join(', ') : ''}\n`;
-    if (iq && !iq.error) r += `IPQS Email   : Valid: ${iq.valid ? 'YES' : 'NO'} | Disposable: ${iq.disposable ? 'YES' : 'NO'} | Fraud: ${iq.fraud_score}/100\n`;
-  }
-  if (d.type === 'url') {
-    const sb = s.sandbox;
-    if (sb && !sb.error) {
-      const det = sb.detections || {};
-      const activeFlags = Object.entries(det).filter(([, v]) => !!v).map(([k]) => k.replace(/_/g, ' ').toUpperCase());
-      r += `Safe Browser  : Status ${sb.status || '—'} | Title: ${sb.title || '—'}
-`;
-      r += `Final URL     : ${sb.final_url || '—'}
-`;
-      r += `Redirects     : ${(sb.redirects || []).length}
-`;
-      r += `Requests      : ${(sb.requests || []).length}
-`;
-      r += `Indicators    : ${activeFlags.length ? activeFlags.join(', ') : 'None'}
-`;
-    }
-    const iq = s.ipqs_url;
-    if (iq && !iq.error) r += `IPQS URL     : Phishing: ${iq.phishing ? 'YES' : 'NO'} | Malware: ${iq.malware ? 'YES' : 'NO'} | Risk: ${iq.risk_score}/100\n`;
-  }
-  if (d.type === 'unknown_string') {
-    const a = d.local_analysis || analyzeEncodedString(d.ioc || '');
-    r += `Encoded String Analyzer : ${a.level} | Length: ${(a.compact || '').length}\n`;
-    r += `Detected Signals        : ${a.signals?.join(', ') || 'None'}\n`;
-    r += `Risk Flags              : ${a.flags?.join(', ') || 'None'}\n`;
-    if (a.decoded?.length) {
-      a.decoded.slice(0, 3).forEach((x) => {
-        r += `${String(x.type).padEnd(23)}: ${String(x.value).slice(0, 180)}\n`;
-      });
-    }
-  }
-
-  r += `
-───────────────────────────────────────────────────────────────────
-[3] ANALYSIS
-───────────────────────────────────────────────────────────────────
-Risk Score ${score}/100 — Level: ${level}
-
-${score >= 75
-    ? 'CRITICAL: Strong evidence of malicious activity. Immediate escalation required.'
-    : score >= 50
-      ? 'HIGH: Significant threat signals detected. Analyst review required.'
-      : score >= 25
-        ? 'MEDIUM: Some suspicious signals. Correlate with additional context.'
-        : 'LOW/CLEAN: No significant threat signals detected across sources.'}
-
-Active Threat Flags:
-${flags.length ? flags.map((f) => `  - ${f}`).join('\n') : '  - No threat flags raised'}
-
-───────────────────────────────────────────────────────────────────
-[4] RECOMMENDED INVESTIGATION STEPS
-───────────────────────────────────────────────────────────────────
-  1. Search SIEM for internal activity related to this IOC
-  2. Identify affected endpoints/users that communicated with this indicator
-  3. Review network flow data for volume and direction anomalies
-  4. Check EDR telemetry for related artifacts or parent processes
-  5. Use OSINT pivots to identify related infrastructure
-  6. Determine if part of a known threat campaign or actor group
-  7. Review firewall/proxy logs for pattern of life analysis
-
-───────────────────────────────────────────────────────────────────
-[5] OSINT PIVOT LINKS
-───────────────────────────────────────────────────────────────────`;
-
-  getPivotLinks(d.ioc, d.type).forEach((p) => {
-    r += `\n  ${p.name.padEnd(20)} ${String(p.purpose || 'Pivot').padEnd(28)} ${p.url}`;
-  });
-
-  r += `
-
-───────────────────────────────────────────────────────────────────
-[6] ANALYST NOTES
-───────────────────────────────────────────────────────────────────
-${document.getElementById('analyst-notes').value || '[Add analyst notes here]'}
-
-───────────────────────────────────────────────────────────────────
-[7] DISPOSITION
-───────────────────────────────────────────────────────────────────
-□ Escalate to L3 / Threat Intel team
-□ Block at firewall / EDR
-□ Add to threat watchlist
-□ Notify affected users / system owners
-□ Open incident ticket
-□ Close as false positive / benign
-
-═══════════════════════════════════════════════════════════════════
-END OF REPORT — MYRMIDON Intel Console
-═══════════════════════════════════════════════════════════════════`;
-
-  document.getElementById('report-content').textContent = r;
+  const report = generateAutoL3Report(d);
+  document.getElementById('report-content').textContent = report;
 }
 
 function addHistory(ioc, type, rs) {
@@ -3046,100 +2933,12 @@ function downloadReport() {
   a.click();
 }
 
-function renderSafeBrowserOnly(data) {
-  const el = document.getElementById('sandbox-panel');
-  if (!el) return;
-
-  const redirects = data.redirects || [];
-  const requests = data.requests || [];
-  const detections = data.detections || {};
-
-  const detectionRows = Object.entries(detections).length
-    ? Object.entries(detections).map(([k, v]) => `
-        <div class="sandbox-row">
-          <div class="sandbox-k">${escapeHtml(k.replace(/_/g, ' ').toUpperCase())}</div>
-          <div class="sandbox-v ${v ? 'warn' : 'ok'}">${v ? 'YES' : 'NO'}</div>
-        </div>
-      `).join('')
-    : `<div class="sandbox-empty">No detection flags returned.</div>`;
-
-  const redirectText = redirects.length
-    ? redirects.map((r) => `${r.status || '-'}  ${r.url || ''}`).join('\n')
-    : 'No redirects observed.';
-
-  const requestText = requests.length
-    ? requests.slice(0, 80).join('\n')
-    : 'No network requests returned.';
-
-  el.innerHTML = `
-    <div class="sandbox-layout">
-      <div class="sandbox-card">
-        <div class="sandbox-hdr">
-          <div class="sandbox-title">Screenshot</div>
-        </div>
-        <div class="sandbox-body">
-          ${data.screenshot_base64
-            ? `<img class="sandbox-shot" src="data:image/png;base64,${data.screenshot_base64}" alt="Safe Browser Screenshot">`
-            : `<div class="sandbox-empty">No screenshot returned by backend.</div>`
-          }
-        </div>
-      </div>
-
-      <div class="sandbox-card">
-        <div class="sandbox-hdr">
-          <div class="sandbox-title">Page Analysis</div>
-        </div>
-        <div class="sandbox-body">
-          <div class="sandbox-kv">
-            <div class="sandbox-row">
-              <div class="sandbox-k">Input URL</div>
-              <div class="sandbox-v">${escapeHtml(data.input_url || '-')}</div>
-            </div>
-            <div class="sandbox-row">
-              <div class="sandbox-k">Final URL</div>
-              <div class="sandbox-v ${data.final_url && data.final_url !== data.input_url ? 'warn' : 'ok'}">${escapeHtml(data.final_url || '-')}</div>
-            </div>
-            <div class="sandbox-row">
-              <div class="sandbox-k">HTTP Status</div>
-              <div class="sandbox-v ${data.status >= 400 ? 'bad' : 'ok'}">${escapeHtml(data.status || '-')}</div>
-            </div>
-            <div class="sandbox-row">
-              <div class="sandbox-k">Title</div>
-              <div class="sandbox-v">${escapeHtml(data.title || '-')}</div>
-            </div>
-            <div class="sandbox-row">
-              <div class="sandbox-k">Redirects</div>
-              <div class="sandbox-v">${redirects.length}</div>
-            </div>
-            <div class="sandbox-row">
-              <div class="sandbox-k">Requests</div>
-              <div class="sandbox-v">${requests.length}</div>
-            </div>
-          </div>
-
-          <br>
-          <div class="sandbox-title">Detections</div>
-          <div class="sandbox-kv">${detectionRows}</div>
-
-          <br>
-          <div class="sandbox-title">Redirect Chain</div>
-          <div class="sandbox-list">${escapeHtml(redirectText)}</div>
-
-          <br>
-          <div class="sandbox-title">Network Requests</div>
-          <div class="sandbox-list">${escapeHtml(requestText)}</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
   document.querySelectorAll('.tpane').forEach((t) => t.classList.remove('active'));
   const pane = document.getElementById(`tpane-${name}`);
   if (pane) pane.classList.add('active');
-  const tabNames = ['overview', 'sources', 'pivots', 'sandbox', 'analytics', 'report', 'raw'];
+  const tabNames = ['overview', 'sources', 'pivots', 'sandbox', 'analytics', 'phishing', 'defangpro', 'report', 'raw'];
   const idx = tabNames.indexOf(name);
   const tabs = document.querySelectorAll('.tab');
   if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
@@ -3170,6 +2969,261 @@ function hideErr() {
 function navClick(el) {
   document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
   el.classList.add('active');
+}
+
+
+/* ────────────────────────────────────────────────────────────────
+   MYRMIDON V2 MODULES
+   1. Safe Browser minimal renderer
+   2. APS Engine
+   3. Auto L3 Report helpers
+   4. Phishing Detector Mode
+   5. Defang / Refang Pro
+   6. Quick Pivot/Graph support wrappers
+──────────────────────────────────────────────────────────────── */
+
+function renderSafeBrowserOnly(data) {
+  const el = document.getElementById('sandbox-panel');
+  if (!el) return;
+
+  const redirects = data.redirects || [];
+  const requests = data.requests || [];
+  const detections = data.detections || {};
+  const activeDetections = Object.entries(detections)
+    .filter(([, v]) => !!v)
+    .map(([k]) => k.replace(/_/g, ' ').toUpperCase());
+
+  const redirectsText = redirects.length
+    ? redirects.map((r) => `${r.status || '-'}  ${r.url || ''}`).join('\n')
+    : 'No redirect chain observed.';
+
+  const requestsText = requests.length
+    ? requests.slice(0, 80).join('\n')
+    : 'No network requests returned.';
+
+  el.innerHTML = `
+    <div class="sandbox-layout">
+      <div class="sandbox-card">
+        <div class="sandbox-hdr">
+          <div class="sandbox-title">SAFE BROWSER RESULT</div>
+          <button class="btn-copy" onclick="copySandboxEvidence()">Copy Evidence</button>
+        </div>
+        <div class="sandbox-body">
+          ${
+            data.screenshot_base64
+              ? `<img class="sandbox-shot" src="data:image/png;base64,${data.screenshot_base64}" alt="Safe Browser Screenshot">`
+              : `<div class="sandbox-empty">No screenshot returned by backend.</div>`
+          }
+        </div>
+      </div>
+
+      <div class="sandbox-card">
+        <div class="sandbox-hdr">
+          <div class="sandbox-title">Page Analysis</div>
+        </div>
+        <div class="sandbox-body">
+          <div class="sandbox-kv">
+            <div class="sandbox-row"><div class="sandbox-k">Input URL</div><div class="sandbox-v">${escapeHtml(data.input_url || '-')}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Final URL</div><div class="sandbox-v">${escapeHtml(data.final_url || '-')}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">HTTP Status</div><div class="sandbox-v">${escapeHtml(data.status || '-')}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Title</div><div class="sandbox-v">${escapeHtml(data.title || '-')}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Redirects</div><div class="sandbox-v">${redirects.length}</div></div>
+            <div class="sandbox-row"><div class="sandbox-k">Requests</div><div class="sandbox-v">${requests.length}</div></div>
+          </div>
+
+          <div class="sandbox-badges">
+            ${
+              activeDetections.length
+                ? activeDetections.map((x) => `<span class="sandbox-badge bad">${escapeHtml(x)}</span>`).join('')
+                : `<span class="sandbox-badge ok">NO HIGH-CONFIDENCE LURE DETECTED</span>`
+            }
+          </div>
+
+          <br>
+          <div class="sandbox-title">Detections</div>
+          <pre class="sandbox-list">${escapeHtml(JSON.stringify(detections, null, 2))}</pre>
+
+          <br>
+          <div class="sandbox-title">Redirect Chain</div>
+          <pre class="sandbox-list">${escapeHtml(redirectsText)}</pre>
+
+          <br>
+          <div class="sandbox-title">Observed Requests</div>
+          <pre class="sandbox-list">${escapeHtml(requestsText)}</pre>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function computeAPS(d) {
+  const risk = d?.risk_score || {};
+  const ext = typeof computeExtendedRisk === 'function' ? computeExtendedRisk(d) : { score: 0, confidence: 0 };
+  const flags = risk.flags || [];
+  const s = d?.sources || {};
+  const sandbox = d?.sandbox_analysis || s?.sandbox || {};
+  const detections = sandbox?.detections || {};
+  let score = Math.max(Number(risk.score || 0), Number(ext.score || 0));
+  const reasons = [];
+
+  function add(points, reason) {
+    score += points;
+    reasons.push(reason);
+  }
+
+  const vtStats = s?.virustotal?.data?.attributes?.last_analysis_stats || {};
+  if ((vtStats.malicious || 0) > 0) add(Math.min(35, vtStats.malicious * 6), `VirusTotal malicious detections: ${vtStats.malicious}`);
+  if ((vtStats.suspicious || 0) > 0) add(Math.min(18, vtStats.suspicious * 4), `VirusTotal suspicious detections: ${vtStats.suspicious}`);
+
+  const abuse = s?.abuseipdb?.data || {};
+  if ((abuse.abuseConfidenceScore || 0) >= 50) add(18, `AbuseIPDB confidence: ${abuse.abuseConfidenceScore}`);
+
+  if (detections.credential_form) add(30, 'Credential form detected by Safe Browser');
+  if (detections.fake_cloudflare) add(25, 'Fake Cloudflare / human verification lure');
+  if (detections.powershell_lure) add(35, 'PowerShell / Win+R execution lure');
+  if (detections.clipboard_lure) add(30, 'Clipboard social engineering lure');
+  if (detections.suspicious_download_lure) add(18, 'Suspicious download/invoice lure');
+
+  const tld = String(d?.ioc || '').split('.').pop()?.toLowerCase();
+  if (['zip', 'mov', 'top', 'xyz', 'click', 'support', 'cam', 'rest'].includes(tld)) add(10, `Suspicious/high-abuse TLD: .${tld}`);
+
+  if (flags.length) reasons.push(...flags.slice(0, 8));
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const level = score >= 85 ? 'CRITICAL' : score >= 70 ? 'HIGH' : score >= 40 ? 'MEDIUM' : score >= 20 ? 'LOW' : 'CLEAN';
+  const verdict = score >= 85 ? 'ESCALATE / CONTAIN' : score >= 70 ? 'ESCALATE FOR L3 REVIEW' : score >= 40 ? 'INVESTIGATE / CORRELATE' : 'MONITOR / LOW PRIORITY';
+
+  return { score, level, verdict, confidence: ext.confidence || 0, reasons: [...new Set(reasons)].slice(0, 12) };
+}
+
+function generateAutoL3Report(d) {
+  if (!d) return 'No investigation data available.';
+  const aps = computeAPS(d);
+  const pivots = getPivotLinks(d.ioc, d.type).slice(0, 12);
+  const flags = d?.risk_score?.flags || [];
+  const sandbox = d?.sandbox_analysis || d?.sources?.sandbox || {};
+  const detections = sandbox?.detections || {};
+  const activeDetections = Object.entries(detections).filter(([, v]) => !!v).map(([k]) => k.replace(/_/g, ' ').toUpperCase());
+
+  return `MYRMIDON — AUTO SOC L3 REPORT
+Generated: ${new Date().toISOString()}
+
+[1] INVESTIGATION SUMMARY
+IOC: ${d.ioc || sandbox.input_url || 'N/A'}
+Type: ${(d.type || 'unknown').toUpperCase()}
+Defanged: ${defang(d.ioc || sandbox.input_url || '')}
+APS: ${aps.score}/100 — ${aps.level}
+Analyst Verdict: ${aps.verdict}
+Confidence: ${aps.confidence}%
+
+[2] EVIDENCE GATHERED
+Risk flags:
+${flags.length ? flags.map((x) => `- ${x}`).join('\n') : '- No risk flags raised by enrichment sources.'}
+
+APS drivers:
+${aps.reasons.length ? aps.reasons.map((x) => `- ${x}`).join('\n') : '- No strong APS drivers identified.'}
+
+Safe Browser:
+- Input URL: ${sandbox.input_url || 'N/A'}
+- Final URL: ${sandbox.final_url || 'N/A'}
+- HTTP status: ${sandbox.status || 'N/A'}
+- Title: ${sandbox.title || 'N/A'}
+- Redirects observed: ${(sandbox.redirects || []).length}
+- Requests observed: ${(sandbox.requests || []).length}
+- Active detections: ${activeDetections.join(', ') || 'None'}
+
+[3] IMPACT ASSESSMENT
+${aps.score >= 85
+  ? 'Critical-risk indicator. Potential credential theft, execution lure, malicious infrastructure, or active threat delivery should be assumed until disproven.'
+  : aps.score >= 70
+    ? 'High-risk indicator. The IOC presents enough malicious/suspicious signals to justify escalation and correlation across SIEM, EDR, proxy and identity logs.'
+    : aps.score >= 40
+      ? 'Medium-risk indicator. Suspicious signals exist, but additional correlation is required before containment decisions.'
+      : 'Low-risk indicator. No strong malicious indicators were identified in available data, but monitoring is still recommended if observed internally.'}
+
+[4] RECOMMENDATIONS
+- Search SIEM/proxy/firewall logs for this IOC and related redirects.
+- Validate whether any internal user interacted with the URL/domain/IP.
+- If credentials may have been submitted, initiate password reset and session revocation.
+- Review EDR telemetry for spawned browser, scripting, PowerShell, mshta, rundll32 or downloaded files.
+- Block the IOC and redirect chain if no business justification exists.
+- Preserve screenshot, redirects and network requests as ticket evidence.
+- Add related domains, IPs and final URLs to watchlist for recurrence monitoring.
+
+[5] OSINT PIVOTS
+${pivots.map((p) => `- ${p.name}: ${p.url}`).join('\n')}
+
+[6] FINAL VERDICT
+${aps.verdict} — APS ${aps.score}/100 (${aps.level})
+
+END OF REPORT`;
+}
+
+function runPhishingDetector() {
+  const input = document.getElementById('phish-input')?.value || '';
+  const out = document.getElementById('phish-output');
+  if (!out) return;
+
+  const text = input.toLowerCase();
+  const findings = [];
+  let score = 0;
+
+  function flag(points, label, evidence) {
+    score += points;
+    findings.push({ label, evidence });
+  }
+
+  if (/password|contraseña|credential|login|sign in|verify account|actualiza tu cuenta/.test(text)) flag(25, 'Credential harvesting language', 'Login/password/account verification wording detected.');
+  if (/mfa|2fa|push|approve|authenticator|verification code|código/.test(text)) flag(18, 'MFA / verification pressure', 'MFA, code or approval wording detected.');
+  if (/sharepoint|onedrive|office 365|microsoft|outlook|adobe|dhl|fedex|invoice|payment|factura/.test(text)) flag(18, 'Brand / business lure', 'Common impersonated brand or invoice/payment lure detected.');
+  if (/qr|qrcode|scan/.test(text)) flag(22, 'QR phishing indicator', 'QR/scan wording detected.');
+  if (/clipboard|copy and paste|ctrl\+v|win\s*\+\s*r|powershell|cmd\.exe|mshta|rundll32/.test(text)) flag(35, 'Execution / clipboard lure', 'Clipboard, Win+R or script execution wording detected.');
+  if (/urgent|immediate|expire|suspend|limited time|within 24 hours|bloquead|suspendid/.test(text)) flag(12, 'Urgency pressure', 'Urgent or account suspension pressure detected.');
+  if (/https?:\/\/|hxxps?:\/\/|www\./.test(input)) flag(10, 'Embedded URL', 'URL-like string detected in message body.');
+  if (/\.(zip|mov|iso|img|html|hta|js|vbs|scr|exe)\b/i.test(input)) flag(25, 'Suspicious file/extension lure', 'Potentially risky file extension detected.');
+
+  score = Math.min(100, score);
+  const level = score >= 80 ? 'CRITICAL' : score >= 60 ? 'HIGH' : score >= 35 ? 'MEDIUM' : score >= 15 ? 'LOW' : 'CLEAN';
+
+  out.textContent = `PHISHING DETECTOR RESULT
+
+Score: ${score}/100
+Level: ${level}
+
+Findings:
+${findings.length ? findings.map((f) => `- ${f.label}: ${f.evidence}`).join('\n') : '- No strong phishing indicators detected.'}
+
+Recommended SOC Actions:
+- Validate sender, SPF/DKIM/DMARC and reply-to alignment.
+- Detonate embedded URLs through Safe Browser.
+- Search mail gateway for additional recipients.
+- Validate whether the user clicked or entered credentials.
+- Review endpoint telemetry if execution/download lure exists.`;
+}
+
+function copyPhishingResult() {
+  const txt = document.getElementById('phish-output')?.textContent || '';
+  navigator.clipboard.writeText(txt);
+}
+
+function runDefangPro(mode) {
+  const src = document.getElementById('defang-input')?.value || '';
+  const out = document.getElementById('defang-output');
+  if (!out) return;
+  if (mode === 'refang') {
+    out.value = refang(src).replace(/hxxp/gi, 'http');
+    return;
+  }
+  out.value = src
+    .replace(/https:\/\//gi, 'hxxps://')
+    .replace(/http:\/\//gi, 'hxxp://')
+    .replace(/([\w.-]+)@([\w.-]+\.[a-z]{2,})/gi, '$1@$2'.replace(/\./g, '[.]'))
+    .replace(/\./g, '[.]');
+}
+
+function copyDefangPro() {
+  const txt = document.getElementById('defang-output')?.value || '';
+  navigator.clipboard.writeText(txt);
 }
 
 function defangModal() {
