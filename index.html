@@ -1216,13 +1216,23 @@
 
 
         <div class="tpane" id="tpane-sandbox">
-          <div class="sec-title">Safe Browser / URL Detonation</div>
-          <div id="sandbox-panel">
-            <div class="sandbox-empty">
-              Submit a URL IOC to detonate it with the MYRMIDON Safe Browser API.<br>
-              The module will render screenshot, redirects, page title, network requests and phishing indicators.
+
+          <div class="sandbox-card">
+
+            <div class="sandbox-hdr">
+              <div class="sandbox-title">Safe Browser Sandbox</div>
             </div>
+
+            <div id="sandbox-panel" class="sandbox-body">
+              <div class="sandbox-empty">
+                Safe Browser result is available only for URL investigations.<br><br>
+                Submit a URL such as:<br>
+                https://example.com
+              </div>
+            </div>
+
           </div>
+
         </div>
 
         <div class="tpane" id="tpane-analytics">
@@ -1469,14 +1479,17 @@ function loadEx(t) {
 async function investigate() {
   const raw = document.getElementById('ioc-input').value.trim();
   if (!raw) return;
-  const ioc = refang(raw);
-  const type = detectType(ioc);
+
+  let ioc = refang(raw);
+  let type = detectType(ioc);
+
   if (type === 'unknown') {
     showErr('Could not detect IOC type. Check format.');
     return;
   }
 
   hideErr();
+
   currentIOC = type === 'unknown_string' ? ioc.replace(/\s+/g, '') : ioc;
   currentType = type;
 
@@ -1502,20 +1515,39 @@ async function investigate() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: ioc })
       });
+
       if (!res.ok) throw new Error(`Safe Browser ${res.status}`);
+
       const sandboxRaw = await res.json();
+
       if (sandboxRaw.error) throw new Error(sandboxRaw.error);
-      data = normalizeSandboxData(ioc, sandboxRaw);
-    } else {
-      res = await fetch(`${WORKER}?ioc=${encodeURIComponent(ioc)}&type=${type}`);
-      if (!res.ok) throw new Error(`Worker ${res.status}`);
-      data = await res.json();
-      if (data.error) throw new Error(data.error);
+
+      currentData = sandboxRaw;
+      currentIOC = ioc;
+      currentType = 'url';
+
+      document.getElementById('loading-state').classList.remove('on');
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('results').classList.add('on');
+
+      switchTab('sandbox');
+      renderSafeBrowserOnly(sandboxRaw);
+
+      return;
     }
+
+    res = await fetch(`${WORKER}?ioc=${encodeURIComponent(ioc)}&type=${type}`);
+
+    if (!res.ok) throw new Error(`Worker ${res.status}`);
+
+    data = await res.json();
+
+    if (data.error) throw new Error(data.error);
 
     currentData = data;
     addHistory(ioc, type, data.risk_score);
     renderResults(data);
+
   } catch (e) {
     showErr(`Backend error: ${e.message}`);
     showEmpty();
@@ -3012,6 +3044,94 @@ function downloadReport() {
     download: `myrmidon-${fileIOC}-${Date.now()}.txt`
   });
   a.click();
+}
+
+function renderSafeBrowserOnly(data) {
+  const el = document.getElementById('sandbox-panel');
+  if (!el) return;
+
+  const redirects = data.redirects || [];
+  const requests = data.requests || [];
+  const detections = data.detections || {};
+
+  const detectionRows = Object.entries(detections).length
+    ? Object.entries(detections).map(([k, v]) => `
+        <div class="sandbox-row">
+          <div class="sandbox-k">${escapeHtml(k.replace(/_/g, ' ').toUpperCase())}</div>
+          <div class="sandbox-v ${v ? 'warn' : 'ok'}">${v ? 'YES' : 'NO'}</div>
+        </div>
+      `).join('')
+    : `<div class="sandbox-empty">No detection flags returned.</div>`;
+
+  const redirectText = redirects.length
+    ? redirects.map((r) => `${r.status || '-'}  ${r.url || ''}`).join('\n')
+    : 'No redirects observed.';
+
+  const requestText = requests.length
+    ? requests.slice(0, 80).join('\n')
+    : 'No network requests returned.';
+
+  el.innerHTML = `
+    <div class="sandbox-layout">
+      <div class="sandbox-card">
+        <div class="sandbox-hdr">
+          <div class="sandbox-title">Screenshot</div>
+        </div>
+        <div class="sandbox-body">
+          ${data.screenshot_base64
+            ? `<img class="sandbox-shot" src="data:image/png;base64,${data.screenshot_base64}" alt="Safe Browser Screenshot">`
+            : `<div class="sandbox-empty">No screenshot returned by backend.</div>`
+          }
+        </div>
+      </div>
+
+      <div class="sandbox-card">
+        <div class="sandbox-hdr">
+          <div class="sandbox-title">Page Analysis</div>
+        </div>
+        <div class="sandbox-body">
+          <div class="sandbox-kv">
+            <div class="sandbox-row">
+              <div class="sandbox-k">Input URL</div>
+              <div class="sandbox-v">${escapeHtml(data.input_url || '-')}</div>
+            </div>
+            <div class="sandbox-row">
+              <div class="sandbox-k">Final URL</div>
+              <div class="sandbox-v ${data.final_url && data.final_url !== data.input_url ? 'warn' : 'ok'}">${escapeHtml(data.final_url || '-')}</div>
+            </div>
+            <div class="sandbox-row">
+              <div class="sandbox-k">HTTP Status</div>
+              <div class="sandbox-v ${data.status >= 400 ? 'bad' : 'ok'}">${escapeHtml(data.status || '-')}</div>
+            </div>
+            <div class="sandbox-row">
+              <div class="sandbox-k">Title</div>
+              <div class="sandbox-v">${escapeHtml(data.title || '-')}</div>
+            </div>
+            <div class="sandbox-row">
+              <div class="sandbox-k">Redirects</div>
+              <div class="sandbox-v">${redirects.length}</div>
+            </div>
+            <div class="sandbox-row">
+              <div class="sandbox-k">Requests</div>
+              <div class="sandbox-v">${requests.length}</div>
+            </div>
+          </div>
+
+          <br>
+          <div class="sandbox-title">Detections</div>
+          <div class="sandbox-kv">${detectionRows}</div>
+
+          <br>
+          <div class="sandbox-title">Redirect Chain</div>
+          <div class="sandbox-list">${escapeHtml(redirectText)}</div>
+
+          <br>
+          <div class="sandbox-title">Network Requests</div>
+          <div class="sandbox-list">${escapeHtml(requestText)}</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function switchTab(name) {
