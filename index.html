@@ -11,36 +11,6 @@
 
 // ── ACCESS GATE / DEMO LOGIN ──
 // Change this password before publishing.
-const MYRMIDON_ACCESS_KEY = (() => String.fromCharCode(49,50,51))();
-const MYRMIDON_AUTH_STORAGE_KEY = "myrmidon_access_granted";
-
-function myrmidonShowGate() {
-  const gate = document.getElementById("access-gate");
-  if (gate) gate.classList.remove("hidden");
-}
-
-function myrmidonHideGate() {
-  const gate = document.getElementById("access-gate");
-  if (gate) gate.classList.add("hidden");
-}
-
-function myrmidonLogin() {
-  const input = document.getElementById("access-password");
-  const err = document.getElementById("access-error");
-  const value = (input?.value || "").trim();
-
-  if (value === MYRMIDON_ACCESS_KEY) {
-    sessionStorage.setItem(MYRMIDON_AUTH_STORAGE_KEY, "1");
-    if (err) err.classList.remove("show");
-    if (input) input.value = "";
-    myrmidonHideGate();
-    return;
-  }
-
-  if (err) err.classList.add("show");
-  if (input) input.select();
-}
-
 function myrmidonLogout() {
   sessionStorage.removeItem(MYRMIDON_AUTH_STORAGE_KEY);
   myrmidonShowGate();
@@ -1251,8 +1221,13 @@ function myrmidonLogout() {
 
 </style>
 
+
 <style id="myrmidon-access-style">
-  #myrmidon-access-gate {
+  body.myrmidon-locked > *:not(#access-gate):not(#myrmidon-access-style):not(#myrmidon-access-script):not(script) {
+    display: none !important;
+  }
+
+  #access-gate {
     position: fixed;
     inset: 0;
     z-index: 999999;
@@ -1263,35 +1238,40 @@ function myrmidonLogout() {
       radial-gradient(circle at 50% 20%, rgba(228,0,43,.18), transparent 30%),
       linear-gradient(180deg, #050505 0%, #090b0f 100%);
     color: #f4f6f8;
-    font-family: 'Barlow', system-ui, sans-serif;
+    font-family: 'Barlow', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
-  .myrmidon-gate-card {
+  #access-gate.hidden {
+    display: none !important;
+  }
+
+  .access-card {
     width: min(440px, calc(100vw - 32px));
-    border: 1px solid rgba(228,0,43,.35);
+    border: 1px solid rgba(228,0,43,.38);
     border-radius: 14px;
     padding: 28px;
-    background: rgba(12,14,18,.94);
-    box-shadow: 0 0 42px rgba(228,0,43,.16);
+    background: rgba(12,14,18,.96);
+    box-shadow: 0 0 42px rgba(228,0,43,.18);
   }
 
-  .myrmidon-gate-title {
+  .access-logo {
     font-family: 'Barlow Condensed', system-ui, sans-serif;
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 800;
-    letter-spacing: 4px;
+    letter-spacing: 5px;
     color: #e4002b;
     margin-bottom: 6px;
   }
 
-  .myrmidon-gate-sub {
+  .access-sub {
     font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
     color: #8b95a3;
     margin-bottom: 22px;
+    letter-spacing: 1px;
   }
 
-  .myrmidon-gate-label {
+  .access-label {
     font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     color: #a6b0bd;
@@ -1300,7 +1280,7 @@ function myrmidonLogout() {
     text-transform: uppercase;
   }
 
-  #myrmidon-access-input {
+  #access-password {
     width: 100%;
     border: 1px solid #3a404c;
     border-radius: 8px;
@@ -1312,12 +1292,12 @@ function myrmidonLogout() {
     font-size: 14px;
   }
 
-  #myrmidon-access-input:focus {
-    border-color: rgba(228,0,43,.65);
+  #access-password:focus {
+    border-color: rgba(228,0,43,.70);
     box-shadow: 0 0 0 3px rgba(228,0,43,.08);
   }
 
-  #myrmidon-access-btn {
+  #access-button {
     width: 100%;
     margin-top: 14px;
     border: 0;
@@ -1333,72 +1313,57 @@ function myrmidonLogout() {
     text-transform: uppercase;
   }
 
-  #myrmidon-access-btn:hover {
+  #access-button:hover {
     background: #ff3557;
     box-shadow: 0 0 18px rgba(228,0,43,.38);
   }
 
-  #myrmidon-access-error {
+  #access-error {
     min-height: 18px;
     margin-top: 12px;
     color: #ff2d46;
     font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
+    display: none;
   }
 
-  .myrmidon-gate-note {
+  #access-error.show {
+    display: block;
+  }
+
+  .access-note {
     margin-top: 18px;
     color: #5d6673;
     font-family: 'Share Tech Mono', monospace;
     font-size: 9px;
     line-height: 1.5;
   }
-
-  body.myrmidon-locked > *:not(#myrmidon-access-gate):not(#myrmidon-access-style):not(script) {
-    display: none !important;
-  }
 </style>
 
 </head>
-<body class="myrmidon-locked">
+<body  class="myrmidon-locked">
 
-<div id="myrmidon-access-gate">
-  <div class="myrmidon-gate-card">
-    <div class="myrmidon-gate-title">MYRMIDON</div>
-    <div class="myrmidon-gate-sub">ACCESS GATE // DEMO LOCK</div>
+<div id="access-gate">
+  <div class="access-card">
+    <div class="access-logo">MYRMIDON</div>
+    <div class="access-sub">ACCESS GATE // DEMO LOCK</div>
 
-    <div class="myrmidon-gate-label">Access Password</div>
-    <input id="myrmidon-access-input" type="password" autocomplete="off" placeholder="Enter access key" />
-    <button id="myrmidon-access-btn" type="button">Enter Console</button>
-    <div id="myrmidon-access-error"></div>
+    <div class="access-label">Access Password</div>
+    <input id="access-password" type="password" autocomplete="off" placeholder="Enter access key" />
+    <button id="access-button" type="button">Enter Console</button>
+    <div id="access-error">Access denied.</div>
 
-    <div class="myrmidon-gate-note">
-      Demo lock for GitHub Pages. This is not backend-grade authentication.
+    <div class="access-note">
+      Demo lock for GitHub Pages. Password: 123. This is not backend-grade authentication.
     </div>
   </div>
 </div>
 
 
+</div>
+
+
 <!-- ACCESS GATE / DEMO LOGIN -->
-<div id="access-gate">
-  <div class="access-card">
-    <div class="access-mark">M</div>
-    <div class="access-title">MYRMIDON ACCESS</div>
-    <div class="access-sub">
-      Intel Console // Demo Lock<br>
-      Enter access key to open the SOC L2/L3 workspace.
-    </div>
-
-    <div class="access-label">Access Key</div>
-    <input id="access-password" type="password" placeholder="Enter password" autocomplete="off" spellcheck="false">
-    <button class="access-btn" onclick="myrmidonLogin()">Enter Console</button>
-    <div id="access-error">ACCESS DENIED — invalid key.</div>
-
-    <div class="access-note">
-      Demo lock only. GitHub Pages is static, so this is not enterprise-grade authentication.
-      Do not store secrets or sensitive work data here.
-    </div>
-  </div>
 </div>
 <button class="access-logout" onclick="myrmidonLogout()">LOCK</button>
 
@@ -3595,53 +3560,89 @@ function defangModal() {
 }
 </script>
 
+
 <script id="myrmidon-access-script">
 (function () {
-  const k = (() => String.fromCharCode(49,50,51))();
-  const s = "myrmidon_access_ok_v1";
+  "use strict";
 
-  function unlock() {
-    document.body.classList.remove("myrmidon-locked");
-    const gate = document.getElementById("myrmidon-access-gate");
-    if (gate) gate.remove();
-    sessionStorage.setItem(s, "1");
+  // Password = "123" with light obfuscation for casual viewing.
+  const MYRMIDON_ACCESS_KEY = String.fromCharCode(49, 50, 51);
+  const MYRMIDON_AUTH_STORAGE_KEY = "myrmidon_access_granted_v2";
+
+  function get(id) {
+    return document.getElementById(id);
   }
 
-  function deny() {
-    const err = document.getElementById("myrmidon-access-error");
-    if (err) err.textContent = "Access denied.";
-  }
-
-  function bind() {
+  function showGate() {
     document.body.classList.add("myrmidon-locked");
+    const gate = get("access-gate");
+    if (gate) gate.classList.remove("hidden");
+  }
 
-    if (sessionStorage.getItem(s) === "1") {
-      unlock();
+  function hideGate() {
+    document.body.classList.remove("myrmidon-locked");
+    const gate = get("access-gate");
+    if (gate) gate.classList.add("hidden");
+  }
+
+  function showError() {
+    const err = get("access-error");
+    if (err) err.classList.add("show");
+  }
+
+  function clearError() {
+    const err = get("access-error");
+    if (err) err.classList.remove("show");
+  }
+
+  function login() {
+    const input = get("access-password");
+    const value = String(input && input.value ? input.value : "").trim();
+
+    if (value === MYRMIDON_ACCESS_KEY) {
+      sessionStorage.setItem(MYRMIDON_AUTH_STORAGE_KEY, "1");
+      if (input) input.value = "";
+      clearError();
+      hideGate();
+      return true;
+    }
+
+    showError();
+    return false;
+  }
+
+  function boot() {
+    const gate = get("access-gate");
+    const input = get("access-password");
+    const btn = get("access-button");
+
+    if (!gate || !input || !btn) {
+      console.warn("MYRMIDON access gate IDs missing. Unlocking to avoid blocking UI.");
+      document.body.classList.remove("myrmidon-locked");
       return;
     }
 
-    const input = document.getElementById("myrmidon-access-input");
-    const btn = document.getElementById("myrmidon-access-btn");
-
-    const check = () => {
-      const v = String(input?.value || "");
-      const ok = v.length === k.length && [...v].every((c, i) => c.charCodeAt(0) === k.charCodeAt(i));
-      ok ? unlock() : deny();
-    };
-
-    if (btn) btn.addEventListener("click", check);
-    if (input) {
-      input.focus();
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") check();
-      });
+    if (sessionStorage.getItem(MYRMIDON_AUTH_STORAGE_KEY) === "1") {
+      hideGate();
+      return;
     }
+
+    showGate();
+
+    btn.addEventListener("click", login);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") login();
+    });
+
+    setTimeout(function () {
+      input.focus();
+    }, 100);
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bind);
+    document.addEventListener("DOMContentLoaded", boot);
   } else {
-    bind();
+    boot();
   }
 })();
 </script>
