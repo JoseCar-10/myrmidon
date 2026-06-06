@@ -3356,7 +3356,11 @@ function publicSignals(d) {
     riskyTld,
     typo,
     isUrl: d?.type === 'url',
+    isIP: d?.type === 'ip',
     isDomain: d?.type === 'domain',
+    isHash: d?.type === 'hash',
+    isEmail: d?.type === 'email',
+    iocType: d?.type || 'unknown',
     requestCount: reqs.length,
     redirectCount: redirects.length
   };
@@ -3369,7 +3373,7 @@ function publicDisposition(sig) {
 
   if (sig.hasCredentialForm || sig.hasExecutionLure || sig.hasFakeCloudflare || sig.score >= 85) {
     severity = sig.score >= 85 ? sig.level : 'HIGH';
-    disposition = 'Escalate Public URL Review';
+    disposition = sig.isUrl ? 'Escalate Public URL Review' : 'Escalate Public IOC Review';
     confidence = sig.activeDetections.length ? 'HIGH' : 'MEDIUM';
   } else if (sig.changedHost || sig.riskyTld || sig.vtMalicious > 0 || sig.score >= 40) {
     disposition = 'Review Required';
@@ -3383,8 +3387,92 @@ function publicDisposition(sig) {
 }
 
 function pickNarrativeVariant(sig, disp) {
+  if (sig.isIP) {
+    const ipEvidence = `Evidence:
+Alert Type: External User Data Volume Anomaly / Public IP Review
+IP: ${sig.input}
+Domain: Not applicable
+URL: Not applicable
+Provider / ASN: ${sig.provider}
+Country: ${sig.country}
+Reputation: ${sig.vtMalicious} malicious / ${sig.vtSuspicious} suspicious detections from available public reputation
+Total Outbytes: Not provided by public data
+Outbytes Threshold Context: If internal telemetry confirms total outbound volume is below 1 GB and consistent with expected activity, this supports closure.
+Risk: ${disp.severity}
+Confidence: ${disp.confidence}
+Telemetry: Public IP reputation, ASN/provider context, geo intelligence, and available enrichment sources`;
+
+    const benignIP = [
+`${ipEvidence}
+
+Investigation:
+Upon review of the observed public telemetry, the destination IP ${sig.input} is associated with ${sig.provider} in ${sig.country}. Available public reputation does not currently indicate strong malicious activity for this address. No URL sandbox behavior, redirect chain, credential prompt, or execution lure is applicable because the submitted IOC is an IP address rather than a web landing page.
+
+For an External User Data Volume Anomaly, public intelligence can validate destination context and reputation, but it cannot confirm the actual outbound byte count, user, host, DLP activity, or business purpose. If internal telemetry shows the total outbound volume is less than 1 GB, no unusual authentication or endpoint activity exists, and similar traffic has been previously observed, the activity is consistent with low-risk or expected behavior.
+
+Results and Recommendations:
+${disp.disposition}. No further action is required from public-source evidence alone. Validate the internal outbytes total, destination history, and business context before closure. If the internal transfer volume is below 1 GB and no supporting compromise indicators exist, close as expected activity or continue passive monitoring.`,
+`${ipEvidence}
+
+Investigation:
+Upon review, the IP ${sig.input} appears to be associated with ${sig.provider}. The available public enrichment does not show a malicious consensus, and the risk score remains ${sig.score}/100. This lowers concern from a public reputation perspective, but it does not independently validate the outbound traffic volume that triggered the anomaly.
+
+If the alerted outbound volume is under 1 GB, has been observed previously, and aligns with expected destination usage, the anomaly is likely explainable. If the volume is materially above baseline, recurring to a new destination, or paired with endpoint/authentication anomalies, the case should remain open for internal validation.
+
+Results and Recommendations:
+Assess as low risk from public evidence. Recommended action is to verify proxy/DLP/firewall telemetry for total bytes out, frequency, and whether the destination is expected. No blocking is recommended solely from the current public IP reputation.`];
+
+    const reviewIP = [
+`${ipEvidence}
+
+Investigation:
+Upon review of the observed telemetry, the destination IP ${sig.input} maps to ${sig.provider} in ${sig.country}. Public reputation does not fully confirm malicious activity, but the case cannot be closed from public enrichment alone because the triggering condition is an outbound data-volume anomaly.
+
+The key validation point is whether the internal outbound volume is normal for the source host/user. A total transfer under 1 GB may be acceptable when the destination is known and no other suspicious telemetry exists. A transfer above baseline, repeated transfers to a new IP, or unusual timing should be treated as a possible data exposure concern.
+
+Results and Recommendations:
+Review required. Validate total outbytes, baseline comparison, destination history, DLP/file activity, and endpoint process context. If internal volume is low and similar activity has been observed, close as expected behavior. If volume is elevated or unexplained, escalate for deeper investigation.`];
+
+    const highIP = [
+`${ipEvidence}
+
+Investigation:
+Upon review, the public enrichment for ${sig.input} raised concern based on the current risk score or reputation indicators. The IP is associated with ${sig.provider}, but public ASN ownership alone does not determine whether the outbound transfer is benign.
+
+For an External User Data Volume Anomaly, the risk increases if internal telemetry shows high outbound bytes, a new or rare destination, sensitive file access, abnormal process activity, or suspicious authentication near the same time window. Public data cannot confirm exfiltration, but it can support prioritization when paired with internal volume evidence.
+
+Results and Recommendations:
+Treat as priority review until internal telemetry is validated. Confirm whether total outbytes exceeded 1 GB or exceeded host/user baseline, review DLP and proxy logs, and check endpoint activity for file staging or unusual browser/process behavior. Escalate if the transfer is unauthorized or cannot be tied to expected business activity.`];
+
+    const pool = disp.disposition.includes('No Further') ? benignIP : disp.disposition.includes('Escalate') ? highIP : reviewIP;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  if (sig.isDomain && !sig.isUrl) {
+    const domainEvidence = `Evidence:
+Alert Type: Public Domain / Infrastructure Review
+IP: Pending DNS/IP enrichment
+Domain: ${sig.inputHost || sig.input}
+URL: Not applicable
+Provider / ASN: ${sig.provider}
+Country: ${sig.country}
+Reputation: ${sig.vtMalicious} malicious / ${sig.vtSuspicious} suspicious detections from available public reputation
+Risk: ${disp.severity}
+Confidence: ${disp.confidence}
+Telemetry: Public domain reputation, DNS/ASN context, certificate/domain heuristics, and available enrichment sources`;
+
+    return `${domainEvidence}
+
+Investigation:
+Upon review of the observed public telemetry, the domain ${sig.inputHost || sig.input} was assessed using available reputation and infrastructure context. The current evidence does not confirm internal user impact, login activity, endpoint execution, or outbound data transfer. ${sig.riskyTld ? 'The domain uses a higher-abuse TLD, which should be treated as a supporting risk indicator.' : 'No high-abuse TLD signal was identified from the current domain.'}
+
+Results and Recommendations:
+${disp.disposition}. Validate whether the domain was observed internally through DNS, proxy, or email telemetry. If there are no internal hits and public reputation remains clean, no further action is required. If internal access exists, pivot to URL, resolved IPs, certificate history, and related domains.`;
+  }
+
   const commonEvidence = `Evidence:
-IP: ${sig.inputHost === sig.input ? 'Not available from current public result' : 'Pending DNS/IP enrichment'}
+Alert Type: Public URL / Web Landing Review
+IP: Pending DNS/IP enrichment
 Domain: ${sig.finalHost || sig.inputHost || 'Not observed'}
 URL: ${sig.input || 'Not observed'}
 Final URL: ${sig.finalUrl || 'Not observed'}
@@ -3450,12 +3538,87 @@ Escalate for deeper validation. Review proxy and DNS telemetry for affected host
 
 function publicMitreRows(sig) {
   const rows = [];
-  rows.push(['Initial Access', sig.isUrl ? 'Public URL submitted for sandbox review. Treat as possible phishing or web delivery until final destination is validated.' : 'IOC submitted for public enrichment. Initial access is not confirmed without internal telemetry.']);
-  if (sig.hasCredentialForm) rows.push(['Credential Access', 'Safe Browser observed credential-form behavior. Validate whether any real user submitted credentials internally.']);
-  if (sig.hasExecutionLure) rows.push(['Execution', 'Sandbox indicators suggest PowerShell, clipboard, Win+R, or script-execution lure behavior. Endpoint validation is required.']);
-  if (sig.changedHost || sig.redirectCount) rows.push(['Command And Control', 'Redirect or final-host change was observed. Review the final domain and related infrastructure, not only the original URL.']);
-  if (sig.requestCount >= 40) rows.push(['Discovery / Staging', 'High request volume was observed in the sandbox. This may be benign web noise or staged content loading.']);
-  rows.push(['Exfiltration', 'Not observable from public URL data. Requires internal proxy, DLP, or network telemetry such as outbound byte volume and destination history.']);
+
+  if (sig.isIP) {
+    rows.push([
+      'Exfiltration',
+      'Technique: Exfiltration Over Web Service (T1567) / Exfiltration Over C2 Channel (T1041) | Status: REQUIRES INTERNAL VALIDATION | Why: The IOC is an IP tied to an outbound-volume style review. MITRE exfiltration mapping is only supportable if proxy, DLP, firewall, or network telemetry confirms unusual outbound bytes, destination rarity, or sensitive data movement.'
+    ]);
+    rows.push([
+      'Command And Control / Infra',
+      'Technique: Application Layer Protocol: Web Protocols (T1071.001) | Status: NOT CONFIRMED | Why: Public IP reputation and ASN context can identify infrastructure, but they do not prove command-and-control without endpoint or network session evidence.'
+    ]);
+    rows.push([
+      'Resource Development',
+      'Technique: Acquire Infrastructure: Server (T1583.004) / Virtual Private Server (T1583.003) | Status: CONTEXT ONLY | Why: Provider and ASN ownership describe public infrastructure. This is supporting context, not proof of adversary-owned infrastructure.'
+    ]);
+    rows.push([
+      'Impact / Collection',
+      'Technique: Data Staged (T1074) | Status: NOT OBSERVABLE PUBLICLY | Why: Public enrichment cannot show file staging, collection, user behavior, or host activity. Requires EDR, DLP, and file access telemetry.'
+    ]);
+    return rows;
+  }
+
+  rows.push([
+    'Initial Access',
+    sig.isUrl
+      ? 'Technique: Phishing: Spearphishing Link (T1566.002) | Status: POSSIBLE | Why: A URL was submitted for sandbox review. This can represent a phishing delivery path, but user exposure is not confirmed without internal telemetry.'
+      : 'Technique: Phishing / Drive-by vector not confirmed | Status: NOT CONFIRMED | Why: The IOC was submitted for enrichment only. Internal access evidence is required to map this to Initial Access.'
+  ]);
+
+  if (sig.hasCredentialForm) {
+    rows.push([
+      'Credential Access',
+      'Technique: Input Capture: Web Portal Capture (T1056.003) | Status: OBSERVED IN SANDBOX | Why: Safe Browser observed credential-form behavior. Validate internal logs to confirm whether credentials were submitted.'
+    ]);
+  }
+
+  if (sig.hasExecutionLure) {
+    rows.push([
+      'Execution',
+      'Technique: User Execution (T1204) / Command and Scripting Interpreter: PowerShell (T1059.001) | Status: POSSIBLE | Why: Sandbox indicators suggest clipboard, Win+R, PowerShell, or script-execution lure behavior. Endpoint telemetry is required for confirmation.'
+    ]);
+  }
+
+  if (sig.hasFakeCloudflare || sig.typo?.suspicious) {
+    rows.push([
+      'Defense Evasion',
+      'Technique: Masquerading (T1036) | Status: POSSIBLE | Why: The page or domain may imitate a trusted brand, verification flow, or known service. This supports phishing/impersonation concern but does not prove compromise.'
+    ]);
+  }
+
+  if (sig.changedHost || sig.redirectCount) {
+    rows.push([
+      'Command And Control / Infra',
+      'Technique: Application Layer Protocol: Web Protocols (T1071.001) | Status: POSSIBLE INFRASTRUCTURE SIGNAL | Why: Redirect or final-host change was observed. This does not confirm C2, but it identifies web infrastructure requiring final-domain review.'
+    ]);
+  }
+
+  if (sig.riskyTld || sig.changedHost || sig.typo?.suspicious) {
+    rows.push([
+      'Resource Development',
+      'Technique: Acquire Infrastructure: Domains (T1583.001) / Web Services (T1583.006) | Status: POSSIBLE | Why: Suspicious TLD, redirect behavior, or brand-similar naming may indicate adversary-controlled infrastructure.'
+    ]);
+  }
+
+  if (sig.hasDownloadLure) {
+    rows.push([
+      'Initial Access',
+      'Technique: Phishing: Spearphishing Attachment/Link (T1566.001/T1566.002) | Status: POSSIBLE | Why: Download or invoice-lure behavior was observed publicly. Internal endpoint/download evidence is needed to confirm delivery.'
+    ]);
+  }
+
+  if (sig.requestCount >= 40) {
+    rows.push([
+      'Collection / Staging',
+      'Technique: Data Staged (T1074) | Status: NOT CONFIRMED | Why: High request volume was observed in sandbox, but public web requests alone cannot confirm staging or collection.'
+    ]);
+  }
+
+  rows.push([
+    'Exfiltration',
+    'Technique: Exfiltration Over Web Service (T1567) / Exfiltration Over C2 Channel (T1041) | Status: NOT OBSERVABLE PUBLICLY | Why: Public URL data cannot confirm outbound bytes, data transfer, user activity, or destination history. Requires proxy, DLP, firewall, or network telemetry.'
+  ]);
   return rows;
 }
 
@@ -3471,25 +3634,56 @@ function renderPublicAnalysis(d) {
   document.getElementById('analysis-verdict').textContent = `${disp.disposition} / ${disp.severity}`;
   narrativeEl.textContent = narrative;
 
-  const evidence = [
-    ['Submitted IOC', sig.input || d?.ioc || 'Not observed'],
-    ['Final Destination', sig.finalUrl || 'Not observed'],
-    ['Provider / ASN', sig.provider],
-    ['Country', sig.country],
-    ['Sandbox Status', sig.status],
-    ['Page Title', sig.title],
-    ['Risk Score', `${sig.score}/100 ${sig.level}`],
-    ['Detections', sig.activeDetections.join(', ') || 'No active detections observed']
-  ];
+  const evidence = sig.isIP
+    ? [
+        ['Alert Lens', 'External User Data Volume Anomaly / Public IP Review'],
+        ['Submitted IP', sig.input || d?.ioc || 'Not observed'],
+        ['Provider / ASN', sig.provider],
+        ['Country', sig.country],
+        ['Public Reputation', `${sig.vtMalicious} malicious / ${sig.vtSuspicious} suspicious detections`],
+        ['Total Outbytes', 'Not provided by public data'],
+        ['Closure Hint', 'If internal outbytes is below 1 GB and similar activity exists, low-risk closure is supportable.'],
+        ['Risk Score', `${sig.score}/100 ${sig.level}`]
+      ]
+    : sig.isDomain
+      ? [
+          ['Alert Lens', 'Public Domain / Infrastructure Review'],
+          ['Submitted Domain', sig.inputHost || sig.input || d?.ioc || 'Not observed'],
+          ['Provider / ASN', sig.provider],
+          ['Country', sig.country],
+          ['Public Reputation', `${sig.vtMalicious} malicious / ${sig.vtSuspicious} suspicious detections`],
+          ['TLD Context', sig.riskyTld ? `Higher-abuse TLD .${String(sig.inputHost || sig.input).split('.').pop()}` : 'No high-abuse TLD signal'],
+          ['Typosquat Check', sig.typo?.suspicious ? `Possible brand similarity: ${sig.typo.near}` : 'No close brand similarity detected'],
+          ['Risk Score', `${sig.score}/100 ${sig.level}`]
+        ]
+      : [
+          ['Alert Lens', 'Public URL / Web Landing Review'],
+          ['Submitted IOC', sig.input || d?.ioc || 'Not observed'],
+          ['Final Destination', sig.finalUrl || 'Not observed'],
+          ['Provider / ASN', sig.provider],
+          ['Country', sig.country],
+          ['Sandbox Status', sig.status],
+          ['Page Title', sig.title],
+          ['Risk Score', `${sig.score}/100 ${sig.level}`],
+          ['Detections', sig.activeDetections.join(', ') || 'No active detections observed']
+        ];
   document.getElementById('analysis-evidence').innerHTML = evidence.map(([k, v]) => lineHtml(k, v)).join('');
 
-  const relationships = [
-    ['Host Relationship', sig.changedHost ? `${sig.inputHost} redirected or resolved to final host ${sig.finalHost}` : `Final host remains ${sig.finalHost || sig.inputHost || 'unknown'}`],
-    ['Redirect Chain', sig.redirectCount ? `${sig.redirectCount} redirect event(s) observed` : 'No redirect chain captured'],
-    ['Network Requests', sig.requestCount ? `${sig.requestCount} request(s) captured by Safe Browser` : 'No request list available'],
-    ['TLD Context', sig.riskyTld ? `Final host uses higher-abuse TLD .${String(sig.finalHost).split('.').pop()}` : 'No high-abuse TLD signal from current host'],
-    ['Typosquat Check', sig.typo?.suspicious ? `Possible brand similarity: ${sig.typo.near}` : 'No close brand similarity detected by local heuristic']
-  ];
+  const relationships = sig.isIP
+    ? [
+        ['IOC Relationship', `${sig.input} maps to public provider context: ${sig.provider}`],
+        ['ASN / Hosting Context', sig.provider],
+        ['Geo Context', sig.country],
+        ['Outbytes Dependency', 'Volume, baseline, source host, and destination history require internal telemetry.'],
+        ['Public Limitation', 'No public evidence can confirm whether data was uploaded or exfiltrated.']
+      ]
+    : [
+        ['Host Relationship', sig.changedHost ? `${sig.inputHost} redirected or resolved to final host ${sig.finalHost}` : `Final host remains ${sig.finalHost || sig.inputHost || 'unknown'}`],
+        ['Redirect Chain', sig.redirectCount ? `${sig.redirectCount} redirect event(s) observed` : 'No redirect chain captured'],
+        ['Network Requests', sig.requestCount ? `${sig.requestCount} request(s) captured by Safe Browser` : 'No request list available'],
+        ['TLD Context', sig.riskyTld ? `Final host uses higher-abuse TLD .${String(sig.finalHost).split('.').pop()}` : 'No high-abuse TLD signal from current host'],
+        ['Typosquat Check', sig.typo?.suspicious ? `Possible brand similarity: ${sig.typo.near}` : 'No close brand similarity detected by local heuristic']
+      ];
   document.getElementById('analysis-relationships').innerHTML = relationships.map(([k, v]) => lineHtml(k, v)).join('');
 
   document.getElementById('analysis-mitre').innerHTML = publicMitreRows(sig).map(([t, v]) => mitreHtml(t, v)).join('');
