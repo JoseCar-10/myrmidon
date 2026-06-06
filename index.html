@@ -7,39 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-
-// ── ACCESS GATE / DEMO LOGIN ──
-// Change this password before publishing.
-function myrmidonLogout() {
-  sessionStorage.removeItem(MYRMIDON_AUTH_STORAGE_KEY);
-  myrmidonShowGate();
-  setTimeout(() => document.getElementById("access-password")?.focus(), 50);
-}
-
-(function initMyrmidonAccessGate() {
-  const init = () => {
-    const granted = sessionStorage.getItem(MYRMIDON_AUTH_STORAGE_KEY) === "1";
-    if (granted) myrmidonHideGate();
-    else myrmidonShowGate();
-
-    const input = document.getElementById("access-password");
-    if (input) {
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") myrmidonLogin();
-      });
-      if (!granted) setTimeout(() => input.focus(), 80);
-    }
-  };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
-})();
-
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #050505;
@@ -1338,6 +1306,117 @@ function myrmidonLogout() {
     font-size: 9px;
     line-height: 1.5;
   }
+
+  /* -- L3 PUBLIC ANALYSIS -- */
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 14px;
+  }
+
+  .analysis-card {
+    grid-column: span 6;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+
+  .analysis-card.w12 { grid-column: span 12; }
+  .analysis-card.w4 { grid-column: span 4; }
+
+  .analysis-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 13px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,.025);
+  }
+
+  .analysis-title {
+    font-family: var(--cond);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .analysis-body {
+    padding: 13px;
+  }
+
+  .analysis-narrative {
+    white-space: pre-wrap;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.62;
+    color: var(--text2);
+  }
+
+  .analysis-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .analysis-line {
+    display: grid;
+    grid-template-columns: 132px 1fr;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+  }
+
+  .analysis-line:last-child { border-bottom: 0; }
+
+  .analysis-k {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .analysis-v {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    word-break: break-word;
+  }
+
+  .mitre-row {
+    display: grid;
+    grid-template-columns: 135px 1fr;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+  }
+
+  .mitre-row:last-child { border-bottom: 0; }
+  .mitre-tactic { font-family: var(--cond); color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .mitre-detail { font-family: var(--mono); color: var(--text2); font-size: 11px; line-height: 1.45; }
+
+  .verdict-pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(228,0,43,.25);
+    color: var(--accent);
+    background: rgba(228,0,43,.08);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .analysis-card,
+    .analysis-card.w4,
+    .analysis-card.w12 { grid-column: span 12; }
+    .analysis-line,
+    .mitre-row { grid-template-columns: 1fr; gap: 4px; }
+  }
 </style>
 
 </head>
@@ -1395,6 +1474,7 @@ function myrmidonLogout() {
       <div class="sb-label">Investigation</div>
       <div class="nav-item active" onclick="navClick(this,'investigate')"><span class="nav-icon">🔍</span>IOC Investigate</div>
       <div class="nav-item" onclick="navClick(this,'pivots')"><span class="nav-icon">🔗</span>Quick Pivots</div>
+      <div class="nav-item" onclick="navClick(this,'analysis'); switchTab('analysis')"><span class="nav-icon">🧠</span>Public Analysis</div>
       <div class="nav-item" onclick="navClick(this,'sandbox'); switchTab('sandbox')"><span class="nav-icon">🧪</span>Safe Browser</div>
       <div class="nav-item" onclick="navClick(this,'phishing'); switchTab('phishing')"><span class="nav-icon">🎣</span>Phishing Detector</div>
       <div class="nav-item" onclick="navClick(this,'defangpro'); switchTab('defangpro')"><span class="nav-icon">🛡️</span>Defang Pro</div>
@@ -1516,6 +1596,7 @@ function myrmidonLogout() {
           <div class="tab active" onclick="switchTab('overview')">Overview</div>
           <div class="tab" onclick="switchTab('sources')">Sources</div>
           <div class="tab" onclick="switchTab('pivots')">Pivots</div>
+          <div class="tab" onclick="switchTab('analysis')">Analysis</div>
           <div class="tab" onclick="switchTab('sandbox')">Safe Browser</div>
           <div class="tab" onclick="switchTab('analytics')">Analytics</div>
           <div class="tab" onclick="switchTab('phishing')">Phishing Detector</div>
@@ -1538,6 +1619,44 @@ function myrmidonLogout() {
           <div class="pivots-grid" id="pivots-grid"></div>
         </div>
 
+
+        <div class="tpane" id="tpane-analysis">
+          <div class="sec-title">Public L3 Analysis</div>
+          <div class="analysis-grid">
+            <div class="analysis-card w12">
+              <div class="analysis-hdr">
+                <div class="analysis-title">Narrative Analysis</div>
+                <div class="report-btns">
+                  <span class="verdict-pill" id="analysis-verdict">AWAITING IOC</span>
+                  <button class="btn-copy" onclick="copyPublicAnalysis()">Copy Analysis</button>
+                </div>
+              </div>
+              <div class="analysis-body">
+                <div id="analysis-narrative" class="analysis-narrative">Run an investigation to generate a public-source L3 analysis.</div>
+              </div>
+            </div>
+
+            <div class="analysis-card">
+              <div class="analysis-hdr"><div class="analysis-title">Public Evidence</div></div>
+              <div class="analysis-body"><div id="analysis-evidence" class="analysis-list"></div></div>
+            </div>
+
+            <div class="analysis-card">
+              <div class="analysis-hdr"><div class="analysis-title">URL / Infra Relationships</div></div>
+              <div class="analysis-body"><div id="analysis-relationships" class="analysis-list"></div></div>
+            </div>
+
+            <div class="analysis-card">
+              <div class="analysis-hdr"><div class="analysis-title">MITRE-Lite Mapping</div></div>
+              <div class="analysis-body"><div id="analysis-mitre" class="analysis-list"></div></div>
+            </div>
+
+            <div class="analysis-card">
+              <div class="analysis-hdr"><div class="analysis-title">Missing Public Evidence</div></div>
+              <div class="analysis-body"><div id="analysis-missing" class="analysis-list"></div></div>
+            </div>
+          </div>
+        </div>
 
 
         <div class="tpane" id="tpane-sandbox">
@@ -1670,6 +1789,7 @@ const SANDBOX = 'https://myrmidon-safe-browser45r3r.onrender.com';
 let currentData = null;
 let currentIOC = '';
 let currentType = '';
+let currentPublicAnalysis = '';
 let sessionHistory = [];
 const RISK_WEIGHTS = {
   virustotal: 0.25,
@@ -1888,6 +2008,7 @@ async function investigate() {
       renderDecisionStrip(sandboxData);
       renderGeoStrip(sandboxData);
       renderPivots(sandboxData);
+      renderPublicAnalysis(sandboxData);
       renderAnalytics(sandboxData);
       renderReport(sandboxData);
       document.getElementById('raw-json').textContent = JSON.stringify(sandboxRaw, null, 2);
@@ -2026,6 +2147,7 @@ function renderResults(d) {
   renderGeoStrip(d);
   renderCards(d);
   renderPivots(d);
+  renderPublicAnalysis(d);
   renderSandboxPanel(d);
   renderAnalytics(d);
   renderReport(d);
@@ -3163,6 +3285,230 @@ function renderReport(d) {
   document.getElementById('report-content').textContent = report;
 }
 
+function publicHost(value) {
+  try {
+    return new URL(String(value || '')).hostname || String(value || '');
+  } catch (e) {
+    return String(value || '').replace(/^https?:\/\//i, '').split(/[/?#]/)[0] || String(value || '');
+  }
+}
+
+function publicProvider(d) {
+  const s = d?.sources || {};
+  const sb = d?.sandbox_analysis || s.sandbox || {};
+  return s.ipapi?.as || s.ipinfo?.org || s.censys?.autonomous_system?.name || sb.asn || sb.provider || 'Unknown public provider';
+}
+
+function publicCountry(d) {
+  const s = d?.sources || {};
+  const sb = d?.sandbox_analysis || s.sandbox || {};
+  return s.ipapi?.country || s.ipinfo?.country || sb.country || 'Unknown country';
+}
+
+function lineHtml(k, v) {
+  return `<div class="analysis-line"><div class="analysis-k">${safeText(k)}</div><div class="analysis-v">${safeText(v || 'Not observed')}</div></div>`;
+}
+
+function mitreHtml(tactic, detail) {
+  return `<div class="mitre-row"><div class="mitre-tactic">${safeText(tactic)}</div><div class="mitre-detail">${safeText(detail)}</div></div>`;
+}
+
+function publicSignals(d) {
+  const s = d?.sources || {};
+  const sb = d?.sandbox_analysis || s.sandbox || {};
+  const det = sb.detections || {};
+  const redirects = sb.redirects || [];
+  const reqs = sb.requests || [];
+  const risk = d?.risk_score || {};
+  const input = sb.input_url || d?.ioc || '';
+  const finalUrl = sb.final_url || input;
+  const inputHost = publicHost(input);
+  const finalHost = publicHost(finalUrl);
+  const vt = s.virustotal?.data?.attributes?.last_analysis_stats || {};
+  const typo = detectTyposquat(inputHost);
+  const activeDetections = Object.entries(det)
+    .filter(([, v]) => !!v)
+    .map(([k]) => k.replace(/_/g, ' ').toUpperCase());
+  const riskyTld = ['zip', 'mov', 'top', 'xyz', 'click', 'support', 'cam', 'rest'].includes(String(finalHost).split('.').pop()?.toLowerCase());
+
+  return {
+    input,
+    finalUrl,
+    inputHost,
+    finalHost,
+    provider: publicProvider(d),
+    country: publicCountry(d),
+    score: risk.score || 0,
+    level: risk.level || 'CLEAN',
+    flags: risk.flags || [],
+    activeDetections,
+    redirects,
+    reqs,
+    vtMalicious: vt.malicious || 0,
+    vtSuspicious: vt.suspicious || 0,
+    title: sb.title || 'Not observed',
+    status: sb.status || 'Not observed',
+    changedHost: !!(inputHost && finalHost && inputHost !== finalHost),
+    hasCredentialForm: !!det.credential_form,
+    hasExecutionLure: !!(det.powershell_lure || det.clipboard_lure),
+    hasFakeCloudflare: !!det.fake_cloudflare,
+    hasDownloadLure: !!det.suspicious_download_lure,
+    riskyTld,
+    typo,
+    isUrl: d?.type === 'url',
+    isDomain: d?.type === 'domain',
+    requestCount: reqs.length,
+    redirectCount: redirects.length
+  };
+}
+
+function publicDisposition(sig) {
+  let severity = sig.level || 'CLEAN';
+  let disposition = 'Monitor / Validate Context';
+  let confidence = 'MEDIUM';
+
+  if (sig.hasCredentialForm || sig.hasExecutionLure || sig.hasFakeCloudflare || sig.score >= 85) {
+    severity = sig.score >= 85 ? sig.level : 'HIGH';
+    disposition = 'Escalate Public URL Review';
+    confidence = sig.activeDetections.length ? 'HIGH' : 'MEDIUM';
+  } else if (sig.changedHost || sig.riskyTld || sig.vtMalicious > 0 || sig.score >= 40) {
+    disposition = 'Review Required';
+    confidence = 'MEDIUM';
+  } else if (sig.score <= 20 && !sig.changedHost && !sig.activeDetections.length && sig.vtMalicious === 0) {
+    disposition = 'No Further Action From Public Sources';
+    confidence = 'MEDIUM';
+  }
+
+  return { severity, disposition, confidence };
+}
+
+function pickNarrativeVariant(sig, disp) {
+  const commonEvidence = `Evidence:
+IP: ${sig.inputHost === sig.input ? 'Not available from current public result' : 'Pending DNS/IP enrichment'}
+Domain: ${sig.finalHost || sig.inputHost || 'Not observed'}
+URL: ${sig.input || 'Not observed'}
+Final URL: ${sig.finalUrl || 'Not observed'}
+Provider / ASN: ${sig.provider}
+Country: ${sig.country}
+Page Title: ${sig.title}
+HTTP Status: ${sig.status}
+Risk: ${disp.severity}
+Confidence: ${disp.confidence}
+Telemetry: Public OSINT, Safe Browser, URL relationship analysis`;
+
+  const benign = [
+`${commonEvidence}
+
+Investigation:
+The public URL review did not identify strong malicious indicators for the submitted target. The destination ${sig.finalHost || sig.inputHost} is associated with ${sig.provider}, and the available reputation and sandbox evidence do not currently support confirmed malicious activity. ${sig.redirectCount ? `A redirect chain was observed with ${sig.redirectCount} redirect event(s), but no high-confidence phishing or execution indicators were confirmed from the current public telemetry.` : 'No meaningful redirect chain was observed in the current sandbox result.'}
+
+Results and Recommendations:
+${disp.disposition}. No further action is required from public-source evidence alone. Continue monitoring if this destination appears again with a changed final URL, new suspicious reputation, credential prompts, download behavior, or internal telemetry such as abnormal outbound data volume.`,
+`${commonEvidence}
+
+Investigation:
+The reviewed destination appears low risk based on the currently available public evidence. The page resolved to ${sig.finalHost || sig.inputHost}, with provider context listed as ${sig.provider}. No credential harvesting pattern, execution lure, malicious reputation consensus, or suspicious final-domain change was confirmed during this review.
+
+Results and Recommendations:
+This can be treated as expected or low-risk activity from a public-intelligence perspective. If an internal alert such as External User Data Volume Anomaly exists, validate it separately with proxy, DLP, and endpoint telemetry because public URL analysis cannot confirm outbound byte volume or user behavior.`];
+
+  const review = [
+`${commonEvidence}
+
+Investigation:
+The public review identified activity that requires validation. The submitted target resolved or redirected to ${sig.finalHost || sig.inputHost}, associated with ${sig.provider}. ${sig.changedHost ? `The initial host changed from ${sig.inputHost} to ${sig.finalHost}, which increases the need to review the final destination rather than only the submitted URL.` : 'No host change was confirmed, but the public evidence is not complete enough to close with high confidence.'} ${sig.riskyTld ? 'The final destination also uses a higher-abuse TLD, which should be treated as a supporting risk signal.' : ''}
+
+Results and Recommendations:
+Keep this case under review until the public indicators are correlated with internal telemetry. Recommended validation includes proxy hits, DNS lookups, outbound byte volume, endpoint process activity, and whether the destination aligns with an expected business service.`,
+`${commonEvidence}
+
+Investigation:
+The investigation found mixed public signals for ${sig.finalHost || sig.inputHost}. Current reputation does not conclusively prove malicious activity, but the destination context, redirect behavior, or risk score is enough to prevent a clean closure from public evidence alone.
+
+Results and Recommendations:
+Additional validation is recommended. Review whether the URL was observed internally, whether any large outbound transfer occurred after access, and whether endpoint or browser activity shows file upload, download, script execution, or credential submission behavior.`];
+
+  const high = [
+`${commonEvidence}
+
+Investigation:
+The public URL analysis identified high-risk characteristics for ${sig.finalHost || sig.inputHost}. The destination is associated with ${sig.provider}, and the sandbox/reputation evidence raised concern due to ${sig.activeDetections.length ? sig.activeDetections.join(', ') : 'the current risk score and destination behavior'}. This pattern is consistent with a public-facing phishing or suspicious infrastructure case and should not be closed without correlation.
+
+Results and Recommendations:
+Treat this case as ${disp.severity} risk from public evidence. Block or monitor the final URL/domain if it is not business-related, review redirect-chain exposure, and validate internal telemetry for URL clicks, authentication events, endpoint activity, and outbound byte anomalies. If internal evidence confirms access or unusual data transfer, escalate to incident response.`,
+`${commonEvidence}
+
+Investigation:
+The analysis indicates that the submitted URL requires escalation-level review. The final destination ${sig.finalHost || sig.inputHost} showed public indicators that may align with credential theft, social engineering, or suspicious delivery infrastructure. ${sig.hasCredentialForm ? 'A credential form was observed, which increases concern for credential harvesting.' : ''} ${sig.hasExecutionLure ? 'Execution or clipboard lure behavior was also detected, which increases the need for endpoint validation.' : ''}
+
+Results and Recommendations:
+Escalate for deeper validation. Review proxy and DNS telemetry for affected hosts, inspect endpoint process trees around access time, and check whether any outbound data volume anomaly followed the URL interaction. If credential submission or suspicious transfer is confirmed, revoke sessions, reset credentials, and contain the affected asset.`];
+
+  const pool = disp.disposition.includes('No Further') ? benign : disp.disposition.includes('Escalate') ? high : review;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function publicMitreRows(sig) {
+  const rows = [];
+  rows.push(['Initial Access', sig.isUrl ? 'Public URL submitted for sandbox review. Treat as possible phishing or web delivery until final destination is validated.' : 'IOC submitted for public enrichment. Initial access is not confirmed without internal telemetry.']);
+  if (sig.hasCredentialForm) rows.push(['Credential Access', 'Safe Browser observed credential-form behavior. Validate whether any real user submitted credentials internally.']);
+  if (sig.hasExecutionLure) rows.push(['Execution', 'Sandbox indicators suggest PowerShell, clipboard, Win+R, or script-execution lure behavior. Endpoint validation is required.']);
+  if (sig.changedHost || sig.redirectCount) rows.push(['Command And Control', 'Redirect or final-host change was observed. Review the final domain and related infrastructure, not only the original URL.']);
+  if (sig.requestCount >= 40) rows.push(['Discovery / Staging', 'High request volume was observed in the sandbox. This may be benign web noise or staged content loading.']);
+  rows.push(['Exfiltration', 'Not observable from public URL data. Requires internal proxy, DLP, or network telemetry such as outbound byte volume and destination history.']);
+  return rows;
+}
+
+function renderPublicAnalysis(d) {
+  const narrativeEl = document.getElementById('analysis-narrative');
+  if (!narrativeEl) return;
+
+  const sig = publicSignals(d);
+  const disp = publicDisposition(sig);
+  const narrative = pickNarrativeVariant(sig, disp);
+  currentPublicAnalysis = narrative;
+
+  document.getElementById('analysis-verdict').textContent = `${disp.disposition} / ${disp.severity}`;
+  narrativeEl.textContent = narrative;
+
+  const evidence = [
+    ['Submitted IOC', sig.input || d?.ioc || 'Not observed'],
+    ['Final Destination', sig.finalUrl || 'Not observed'],
+    ['Provider / ASN', sig.provider],
+    ['Country', sig.country],
+    ['Sandbox Status', sig.status],
+    ['Page Title', sig.title],
+    ['Risk Score', `${sig.score}/100 ${sig.level}`],
+    ['Detections', sig.activeDetections.join(', ') || 'No active detections observed']
+  ];
+  document.getElementById('analysis-evidence').innerHTML = evidence.map(([k, v]) => lineHtml(k, v)).join('');
+
+  const relationships = [
+    ['Host Relationship', sig.changedHost ? `${sig.inputHost} redirected or resolved to final host ${sig.finalHost}` : `Final host remains ${sig.finalHost || sig.inputHost || 'unknown'}`],
+    ['Redirect Chain', sig.redirectCount ? `${sig.redirectCount} redirect event(s) observed` : 'No redirect chain captured'],
+    ['Network Requests', sig.requestCount ? `${sig.requestCount} request(s) captured by Safe Browser` : 'No request list available'],
+    ['TLD Context', sig.riskyTld ? `Final host uses higher-abuse TLD .${String(sig.finalHost).split('.').pop()}` : 'No high-abuse TLD signal from current host'],
+    ['Typosquat Check', sig.typo?.suspicious ? `Possible brand similarity: ${sig.typo.near}` : 'No close brand similarity detected by local heuristic']
+  ];
+  document.getElementById('analysis-relationships').innerHTML = relationships.map(([k, v]) => lineHtml(k, v)).join('');
+
+  document.getElementById('analysis-mitre').innerHTML = publicMitreRows(sig).map(([t, v]) => mitreHtml(t, v)).join('');
+
+  const missing = [
+    ['Outbound Bytes', 'Not available from public data. Requires proxy, firewall, DLP, or network telemetry.'],
+    ['User / Host Impact', 'Not available from public data. Requires internal alert context.'],
+    ['Login Anomaly', 'Not available from public data. Requires IdP/authentication logs.'],
+    ['Endpoint Execution', 'Not confirmed by public URL data. Requires EDR process tree and file events.'],
+    ['Business Justification', 'Cannot be confirmed from public intelligence alone.']
+  ];
+  document.getElementById('analysis-missing').innerHTML = missing.map(([k, v]) => lineHtml(k, v)).join('');
+}
+
+function copyPublicAnalysis() {
+  if (!currentPublicAnalysis) return;
+  navigator.clipboard.writeText(currentPublicAnalysis);
+}
+
 function addHistory(ioc, type, rs) {
   const score = rs?.score || 0;
   const level = (rs?.level || 'CLEAN').toLowerCase();
@@ -3260,7 +3606,7 @@ function switchTab(name) {
   document.querySelectorAll('.tpane').forEach((t) => t.classList.remove('active'));
   const pane = document.getElementById(`tpane-${name}`);
   if (pane) pane.classList.add('active');
-  const tabNames = ['overview', 'sources', 'pivots', 'sandbox', 'analytics', 'phishing', 'defangpro', 'report', 'raw'];
+  const tabNames = ['overview', 'sources', 'pivots', 'analysis', 'sandbox', 'analytics', 'phishing', 'defangpro', 'report', 'raw'];
   const idx = tabNames.indexOf(name);
   const tabs = document.querySelectorAll('.tab');
   if (idx >= 0 && tabs[idx]) tabs[idx].classList.add('active');
@@ -3610,6 +3956,15 @@ function defangModal() {
     showError();
     return false;
   }
+
+  window.myrmidonLogout = function () {
+    sessionStorage.removeItem(MYRMIDON_AUTH_STORAGE_KEY);
+    showGate();
+    setTimeout(function () {
+      const input = get("access-password");
+      if (input) input.focus();
+    }, 80);
+  };
 
   function boot() {
     const gate = get("access-gate");
